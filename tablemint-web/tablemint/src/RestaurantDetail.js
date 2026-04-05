@@ -19,60 +19,11 @@ const C = {
   red:       "#D05A4A",
 };
 
-const restaurantsData = [
-  { 
-    id: 1,
-    name: "Ember & Oak",
-    cuisine: "Contemporary Indian",
-    area: "Koregaon Park",
-    address: "Lane 5, North Main Road, Koregaon Park, Pune - 411001",
-    rating: 4.8,
-    totalReviews: 234,
-    seats: 12,
-    price: "₹₹₹",
-    priceRange: "₹800 - ₹1500",
-    reservationFee: 300,
-    hours: "11:00 AM - 11:00 PM",
-    phone: "+91 98765 43210",
-    email: "reservations@emberoak.com",
-    distance: "2.3 km",
-    description: "Ember & Oak brings together the authentic flavors of contemporary Indian cuisine with a modern twist. Our chefs blend traditional recipes with innovative techniques to create unforgettable dining experiences.",
-    specialties: "Tandoori Platter, Butter Chicken, Dal Makhani, Naan Varieties",
-    dietaryOptions: "Vegetarian, Vegan Options, Gluten-Free Available",
-    features: "Live Music Weekends, Outdoor Seating, Private Dining Room, Bar Available",
-    images: [
-      "https://images.unsplash.com/photo-1552566626-52f8b828add9?w=800",
-      "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800",
-      "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800",
-    ],
-    menu: [
-      { id: 1, name: "Tandoori Chicken Platter", price: 650, description: "Succulent chicken marinated in yogurt and spices", category: "Main Course", veg: false, image: "https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=400" },
-      { id: 2, name: "Paneer Tikka Masala", price: 480, description: "Cottage cheese in rich tomato gravy", category: "Main Course", veg: true, image: "https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?w=400" },
-      { id: 3, name: "Butter Chicken", price: 550, description: "Tender chicken in creamy tomato sauce", category: "Main Course", veg: false, image: "https://images.unsplash.com/photo-1603894584373-5ac82b2ae398?w=400" },
-      { id: 4, name: "Dal Makhani", price: 320, description: "Creamy black lentils slow-cooked overnight", category: "Main Course", veg: true, image: "https://images.unsplash.com/photo-1546833999-b9f581a1996d?w=400" },
-      { id: 5, name: "Vegetable Biryani", price: 380, description: "Fragrant rice with mixed vegetables", category: "Main Course", veg: true, image: "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=400" },
-      { id: 6, name: "Butter Naan", price: 80, description: "Soft fluffy bread with butter", category: "Breads", veg: true, image: "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=400" },
-      { id: 7, name: "Garlic Naan", price: 90, description: "Naan topped with garlic", category: "Breads", veg: true, image: "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=400" },
-      { id: 8, name: "Roti", price: 40, description: "Whole wheat flatbread", category: "Breads", veg: true, image: "https://images.unsplash.com/photo-1624871103993-f833f89df15b?w=400" },
-      { id: 9, name: "Gulab Jamun", price: 150, description: "Milk dumplings in sugar syrup", category: "Desserts", veg: true, image: "https://images.unsplash.com/photo-1590301157890-4810ed352733?w=400" },
-      { id: 10, name: "Kulfi Falooda", price: 180, description: "Ice cream with vermicelli", category: "Desserts", veg: true, image: "https://images.unsplash.com/photo-1588195538326-c5b1e5b80c4b?w=400" },
-      { id: 11, name: "Rasmalai", price: 160, description: "Cheese patties in sweet milk", category: "Desserts", veg: true, image: "https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=400" },
-      { id: 12, name: "Masala Chai", price: 80, description: "Spiced Indian tea", category: "Beverages", veg: true, image: "https://images.unsplash.com/photo-1597318112093-ba7c5e3bea25?w=400" },
-      { id: 13, name: "Mango Lassi", price: 120, description: "Yogurt drink with mango", category: "Beverages", veg: true, image: "https://images.unsplash.com/photo-1623065422902-30a2d299bbe4?w=400" },
-      { id: 14, name: "Fresh Lime Soda", price: 90, description: "Lime juice with soda", category: "Beverages", veg: true, image: "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=400" },
-    ],
-    reviews: [
-      { id: 1, name: "Priya Sharma", rating: 5, date: "2 days ago", comment: "Absolutely loved the ambiance and food quality!", helpful: 24 },
-      { id: 2, name: "Rajesh Kumar", rating: 4, date: "1 week ago", comment: "Great food and service. Dal Makhani is a must-try.", helpful: 18 },
-      { id: 3, name: "Anjali Desai", rating: 5, date: "2 weeks ago", comment: "Perfect spot for romantic dinner. Highly recommended!", helpful: 31 },
-    ]
-  },
-];
 
 export default function RestaurantDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { user, isLoggedIn } = useAuth();
+  const { isLoggedIn } = useAuth();
   const [restaurant, setRestaurant] = useState(null);
   const [loadingRestaurant, setLoadingRestaurant] = useState(true);
   const [bookingLoading, setBookingLoading] = useState(false);
