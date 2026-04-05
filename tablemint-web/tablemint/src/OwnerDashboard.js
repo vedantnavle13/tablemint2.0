@@ -788,6 +788,7 @@ function AddAdminSection({ restaurantId }) {
       .then(r => setAdmins(r.data.data.admins || []))
       .catch(() => {});
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { refreshAdmins(); }, [restaurantId]);
 
   const handleAdd = async () => {
