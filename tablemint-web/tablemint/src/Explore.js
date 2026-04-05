@@ -237,7 +237,7 @@ export default function Explore() {
   const [search, setSearch] = useState(searchParams.get('search') || "");
   const [focused, setFocused] = useState(false);
   const [filter, setFilter] = useState("All");
-  const [scrolled, setScrolled] = useState(false);
+  const [, setScrolled] = useState(false);
   const [restaurants, setRestaurants] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
 
