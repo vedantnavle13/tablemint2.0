@@ -59,6 +59,11 @@ const AppError = require('./src/utils/AppError');
 app.all('*', (req, res, next) => next(new AppError(`Route ${req.originalUrl} not found.`, 404)));
 app.use(require('./src/middleware/errorHandler'));
 
+setInterval(() => {
+  fetch('https://tablemint-backend.onrender.com/health')
+    .catch(() => {});
+}, 14 * 60 * 1000);
+
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log('✅ MongoDB connected successfully');
