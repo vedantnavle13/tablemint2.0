@@ -1,0 +1,45 @@
+{"level":"error","message":"Failed to send OTP email: emailTemplates.restaurantVerificationOtp is not a function","stack":"TypeError: emailTemplates.restaurantVerificationOtp is not a function\n    at /Users/tanushmahale/Documents/Table_mint_complete/tablemint-backend/src/controllers/restaurantController.js:99:37\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)","timestamp":"2026-04-01 09:49:47"}
+{"level":"error","message":"Failed to send admin credentials email: emailTemplates.restaurantAdminCredentials is not a function","stack":"TypeError: emailTemplates.restaurantAdminCredentials is not a function\n    at /Users/tanushmahale/Documents/Table_mint_complete/tablemint-backend/src/controllers/restaurantController.js:304:37\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)","timestamp":"2026-04-01 09:49:48"}
+{"level":"error","message":"400 - \"restaurant\" is required. \"date\" is required. \"time\" is required. \"partySize\" is required - /api/reservations","timestamp":"2026-04-01 23:33:54"}
+{"level":"error","message":"400 - \"restaurant\" is required. \"date\" is required. \"time\" is required. \"partySize\" is required - /api/reservations","timestamp":"2026-04-01 23:38:56"}
+{"level":"error","message":"400 - \"restaurant\" is required. \"date\" is required. \"time\" is required. \"partySize\" is required - /api/reservations","timestamp":"2026-04-01 23:39:22"}
+{"level":"error","message":"400 - \"restaurant\" is required. \"date\" is required. \"time\" is required. \"partySize\" is required - /api/reservations","timestamp":"2026-04-01 23:39:35"}
+{"level":"error","message":"400 - \"restaurant\" is required. \"date\" is required. \"time\" is required. \"partySize\" is required - /api/reservations","timestamp":"2026-04-01 23:39:35"}
+{"level":"error","message":"400 - \"restaurant\" is required. \"date\" is required. \"time\" is required. \"partySize\" is required - /api/reservations","timestamp":"2026-04-01 23:39:36"}
+{"level":"error","message":"400 - \"restaurant\" is required. \"date\" is required. \"time\" is required. \"partySize\" is required - /api/reservations","timestamp":"2026-04-01 23:39:36"}
+{"level":"error","message":"400 - \"restaurant\" is required. \"date\" is required. \"time\" is required. \"partySize\" is required - /api/reservations","timestamp":"2026-04-01 23:39:36"}
+{"level":"error","message":"Email send failed: Invalid login: 535-5.7.8 Username and Password not accepted. For more information, go to\n535 5.7.8  https://support.google.com/mail/?p=BadCredentials d2e1a72fcca58-82cf9b2443dsm1577905b3a.4 - gsmtp","timestamp":"2026-04-02 08:18:29"}
+{"level":"error","message":"401 - Invalid email or password. - /api/auth/login","timestamp":"2026-04-02 08:19:56"}
+{"level":"error","message":"Email send failed: Invalid login: 535-5.7.8 Username and Password not accepted. For more information, go to\n535 5.7.8  https://support.google.com/mail/?p=BadCredentials 98e67ed59e1d1-35dbb8932ecsm3030703a91.5 - gsmtp","timestamp":"2026-04-02 08:20:12"}
+{"level":"error","message":"400 - An account with this email already exists. - /api/restaurants/69cc9ce31e353d3952cd1863/create-admin","timestamp":"2026-04-03 15:05:50"}
+{"level":"error","message":"401 - Invalid email or password. - /api/auth/login","timestamp":"2026-04-03 15:07:15"}
+{"level":"error","message":"Email send failed: Invalid login: 535-5.7.8 Username and Password not accepted. For more information, go to\n535 5.7.8  https://support.google.com/mail/?p=BadCredentials d9443c01a7336-2b2749a4091sm104484785ad.64 - gsmtp","timestamp":"2026-04-05 10:46:12"}
+{"level":"error","message":"Email send failed: Invalid login: 535-5.7.8 Username and Password not accepted. For more information, go to\n535 5.7.8  https://support.google.com/mail/?p=BadCredentials d9443c01a7336-2b2749b2423sm225936015ad.67 - gsmtp","timestamp":"2026-04-07 16:59:28"}
+{"level":"error","message":"404 - Route / not found. - /","timestamp":"2026-04-07 17:37:24"}
+{"level":"error","message":"404 - Route /favicon.ico not found. - /favicon.ico","timestamp":"2026-04-07 17:37:24"}
+{"level":"error","message":"404 - Route /api/groups not found. - /api/groups","timestamp":"2026-04-07 18:27:31"}
+{"level":"error","message":"404 - Route /api/groups not found. - /api/groups","timestamp":"2026-04-07 18:27:31"}
+{"level":"error","message":"404 - Route /api/groups not found. - /api/groups","timestamp":"2026-04-07 18:28:03"}
+{"level":"error","message":"404 - Route /api/groups not found. - /api/groups","timestamp":"2026-04-07 18:28:03"}
+{"level":"error","message":"404 - Route /api/groups not found. - /api/groups","timestamp":"2026-04-07 18:28:30"}
+{"level":"error","message":"404 - Route /api/groups not found. - /api/groups","timestamp":"2026-04-07 18:28:30"}
+{"level":"error","message":"404 - Route /api/groups not found. - /api/groups","timestamp":"2026-04-07 18:29:24"}
+{"level":"error","message":"404 - Route /api/groups not found. - /api/groups","timestamp":"2026-04-07 18:29:36"}
+{"level":"error","message":"404 - Route /api/groups not found. - /api/groups","timestamp":"2026-04-07 18:29:37"}
+{"level":"error","message":"404 - Route /api/groups not found. - /api/groups","timestamp":"2026-04-07 18:29:50"}
+{"level":"error","message":"404 - Route /api/groups not found. - /api/groups","timestamp":"2026-04-07 18:29:51"}
+{"level":"error","message":"404 - Route /api/groups not found. - /api/groups","timestamp":"2026-04-07 18:30:09"}
+{"level":"error","message":"404 - Route /api/groups not found. - /api/groups","timestamp":"2026-04-07 18:42:47"}
+{"level":"error","message":"404 - Route /api/groups not found. - /api/groups","timestamp":"2026-04-07 18:42:47"}
+{"level":"error","message":"404 - Route /api/groups not found. - /api/groups","timestamp":"2026-04-07 18:43:04"}
+{"level":"error","message":"404 - Route /api/groups/69d505e0981bd0c186109930/share-restaurant not found. - /api/groups/69d505e0981bd0c186109930/share-restaurant","timestamp":"2026-04-07 19:37:32"}
+{"level":"error","message":"404 - Route /api/groups/69d505e0981bd0c186109930/share-restaurant not found. - /api/groups/69d505e0981bd0c186109930/share-restaurant","timestamp":"2026-04-07 19:38:05"}
+{"level":"error","message":"404 - Route /api/groups/69d505e0981bd0c186109930/share-restaurant not found. - /api/groups/69d505e0981bd0c186109930/share-restaurant","timestamp":"2026-04-07 19:39:16"}
+{"level":"error","message":"404 - Route /api/groups/69d505e0981bd0c186109930/share-restaurant not found. - /api/groups/69d505e0981bd0c186109930/share-restaurant","timestamp":"2026-04-07 19:39:46"}
+{"level":"error","message":"404 - Route /api/groups/69d51040981bd0c186109c43/share-restaurant not found. - /api/groups/69d51040981bd0c186109c43/share-restaurant","timestamp":"2026-04-07 19:40:18"}
+{"level":"error","message":"404 - Route /api/groups/69d505e0981bd0c186109930/share-restaurant not found. - /api/groups/69d505e0981bd0c186109930/share-restaurant","timestamp":"2026-04-07 19:40:19"}
+{"level":"error","message":"404 - Route /api/groups/69d51040981bd0c186109c43/share-restaurant not found. - /api/groups/69d51040981bd0c186109c43/share-restaurant","timestamp":"2026-04-07 19:40:23"}
+{"level":"error","message":"404 - Route /api/groups/69d505e0981bd0c186109930/share-restaurant not found. - /api/groups/69d505e0981bd0c186109930/share-restaurant","timestamp":"2026-04-07 19:40:24"}
+{"level":"error","message":"404 - Route /api/groups/69d505e0981bd0c186109930/share-restaurant not found. - /api/groups/69d505e0981bd0c186109930/share-restaurant","timestamp":"2026-04-07 19:42:33"}
+{"level":"error","message":"404 - Route /api/groups/69d51040981bd0c186109c43/share-restaurant not found. - /api/groups/69d51040981bd0c186109c43/share-restaurant","timestamp":"2026-04-07 19:47:23"}
+{"level":"error","message":"404 - Route /api/groups/69d505e0981bd0c186109930/share-restaurant not found. - /api/groups/69d505e0981bd0c186109930/share-restaurant","timestamp":"2026-04-07 19:47:23"}

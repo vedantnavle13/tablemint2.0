@@ -20,7 +20,7 @@ module.exports = function initSocket(io) {
 
             if (!user || !user.isActive) return next(new Error('User not found or inactive.'));
 
-            socket.user = user; // Attach user to socket for later use
+            socket.user = user;
             next();
         } catch {
             next(new Error('Invalid or expired token.'));
@@ -30,13 +30,12 @@ module.exports = function initSocket(io) {
     io.on('connection', (socket) => {
         console.log(`🔌 Socket connected: ${socket.user.name} (${socket.id})`);
 
-        // ─── joinGroup: user joins a specific group room ──────────────────────
+        // ─── joinGroup ────────────────────────────────────────────────────────
         socket.on('joinGroup', async ({ groupId }) => {
             try {
                 const group = await Group.findById(groupId);
                 if (!group) return socket.emit('error', { message: 'Group not found.' });
 
-                // Only members may join
                 const isMember = group.members.some((m) => m.equals(socket.user._id));
                 if (!isMember) return socket.emit('error', { message: 'Access denied.' });
 
@@ -48,10 +47,9 @@ module.exports = function initSocket(io) {
             }
         });
 
-        // ─── sendMessage: plain text or restaurant share ──────────────────────
+        // ─── sendMessage ──────────────────────────────────────────────────────
         socket.on('sendMessage', async ({ groupId, text, type = 'text', restaurantData }) => {
             try {
-                // Verify membership before accepting message
                 const group = await Group.findById(groupId);
                 if (!group) return socket.emit('error', { message: 'Group not found.' });
 
@@ -69,14 +67,13 @@ module.exports = function initSocket(io) {
                 const message = await Message.create(messageData);
                 await message.populate('sender', 'name email');
 
-                // Broadcast to everyone in the room (including sender)
                 io.to(groupId).emit('newMessage', message);
             } catch (err) {
                 socket.emit('error', { message: err.message });
             }
         });
 
-        // ─── createPoll: create a poll and broadcast it ───────────────────────
+        // ─── createPoll ───────────────────────────────────────────────────────
         socket.on('createPoll', async ({ groupId, question, restaurantOptions }) => {
             try {
                 const group = await Group.findById(groupId);
@@ -85,15 +82,13 @@ module.exports = function initSocket(io) {
                 const isMember = group.members.some((m) => m.equals(socket.user._id));
                 if (!isMember) return socket.emit('error', { message: 'Access denied.' });
 
-                // Create the poll document
                 const poll = await Poll.create({
                     groupId,
                     question: question || 'Where should we go?',
                     createdBy: socket.user._id,
-                    options: restaurantOptions, // Array of { restaurantId, name, image, rating, cuisine }
+                    options: restaurantOptions,
                 });
 
-                // Create a 'poll' type message referencing this poll
                 const message = await Message.create({
                     groupId,
                     sender: socket.user._id,
@@ -109,14 +104,13 @@ module.exports = function initSocket(io) {
             }
         });
 
-        // ─── castVote: record a vote and broadcast updated poll ───────────────
+        // ─── castVote ─────────────────────────────────────────────────────────
         socket.on('castVote', async ({ pollId, restaurantId }) => {
             try {
                 const poll = await Poll.findById(pollId);
                 if (!poll) return socket.emit('error', { message: 'Poll not found.' });
                 if (!poll.isOpen) return socket.emit('error', { message: 'Poll is closed.' });
 
-                // Verify the voter is a group member
                 const group = await Group.findById(poll.groupId);
                 const isMember = group.members.some((m) => m.equals(socket.user._id));
                 if (!isMember) return socket.emit('error', { message: 'Access denied.' });
@@ -125,8 +119,27 @@ module.exports = function initSocket(io) {
                 poll.votes.set(socket.user._id.toString(), restaurantId);
                 await poll.save();
 
-                // Broadcast the updated poll to the whole room
                 io.to(poll.groupId.toString()).emit('pollUpdated', poll);
+            } catch (err) {
+                socket.emit('error', { message: err.message });
+            }
+        });
+
+        // ─── endPoll ──────────────────────────────────────────────────────────
+        socket.on('endPoll', async ({ pollId }) => {
+            try {
+                const poll = await Poll.findById(pollId);
+                if (!poll) return socket.emit('error', { message: 'Poll not found.' });
+
+                if (!poll.createdBy.equals(socket.user._id)) {
+                    return socket.emit('error', { message: 'Only the poll creator can end it.' });
+                }
+
+                poll.isOpen = false;
+                await poll.save();
+
+                io.to(poll.groupId.toString()).emit('pollUpdated', poll);
+                console.log(`🗳️ Poll ${pollId} ended by ${socket.user.name}`);
             } catch (err) {
                 socket.emit('error', { message: err.message });
             }

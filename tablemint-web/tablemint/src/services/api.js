@@ -7,33 +7,43 @@ const getAuthToken = () => {
   return localStorage.getItem('token');
 };
 
-// Helper function to make API calls
-export const apiCall = async (endpoint, options = {}) => {
+// Helper function to make API calls.
+// Supports two call styles:
+//   apiCall('/endpoint')                        → GET
+//   apiCall('/endpoint', { method:'POST', body: JSON.stringify({}) })  → options object
+//   apiCall('/endpoint', 'POST', { key: val })  → shorthand (method, plain body object)
+//   apiCall('/endpoint', 'DELETE')              → no body
+export const apiCall = async (endpoint, methodOrOptions = {}, bodyObj) => {
   const url = `${API_BASE_URL}${endpoint}`;
+
+  // Detect shorthand (second arg is a string method name)
+  let options;
+  if (typeof methodOrOptions === 'string') {
+    options = {
+      method: methodOrOptions,
+      ...(bodyObj !== undefined ? { body: JSON.stringify(bodyObj) } : {}),
+    };
+  } else {
+    options = methodOrOptions;
+  }
 
   const headers = {
     'Content-Type': 'application/json',
-    ...options.headers,
+    ...(options.headers || {}),
   };
 
-  // Add auth token if available
   const token = getAuthToken();
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
+  if (token) headers['Authorization'] = `Bearer ${token}`;
 
   try {
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    });
-
+    const response = await fetch(url, { ...options, headers });
     const data = await response.json();
-
     if (!response.ok) {
-      throw new Error(data.message || 'Something went wrong');
+      // Preserve the full response for callers that read err.response.data
+      const err = new Error(data.message || 'Something went wrong');
+      err.response = { data, status: response.status };
+      throw err;
     }
-
     return data;
   } catch (error) {
     console.error('API Error:', error);

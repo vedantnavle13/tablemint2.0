@@ -24,12 +24,6 @@ const groupSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-// Ensure the creator is always in members
-groupSchema.pre('save', function (next) {
-    if (!this.members.includes(this.createdBy)) {
-        this.members.push(this.createdBy);
-    }
-    next();
-});
+// Removed pre('save') hook to stop buggy population manipulation.
 
 module.exports = mongoose.model('Group', groupSchema);
