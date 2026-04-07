@@ -99,6 +99,7 @@ function Card({ r, navigate }) {
           {r.seats} seats
         </div>
 
+        {/* Overlay bottom row: location + hours */}
         <div style={{
           position:"absolute",
           bottom: 12,
@@ -120,18 +121,34 @@ function Card({ r, navigate }) {
           }}>
             📍 {r.distance}
           </div>
-          <div style={{
-            background: "rgba(0,0,0,0.6)",
-            backdropFilter: "blur(8px)",
-            color: "#fff",
-            fontSize: 11,
-            fontWeight: 600,
-            padding: "5px 10px",
-            borderRadius: 8,
-            fontFamily: "'DM Sans', sans-serif",
-          }}>
-            🕐 {r.hours}
-          </div>
+          {/* Show km distance badge in green when in Near Me mode */}
+          {r.distanceKm !== undefined ? (
+            <div style={{
+              background: "rgba(74,155,111,0.9)",
+              backdropFilter: "blur(8px)",
+              color: "#fff",
+              fontSize: 11,
+              fontWeight: 700,
+              padding: "5px 10px",
+              borderRadius: 8,
+              fontFamily: "'DM Sans', sans-serif",
+            }}>
+              📡 {r.distanceKm} km away
+            </div>
+          ) : (
+            <div style={{
+              background: "rgba(0,0,0,0.6)",
+              backdropFilter: "blur(8px)",
+              color: "#fff",
+              fontSize: 11,
+              fontWeight: 600,
+              padding: "5px 10px",
+              borderRadius: 8,
+              fontFamily: "'DM Sans', sans-serif",
+            }}>
+              🕐 {r.hours}
+            </div>
+          )}
         </div>
       </div>
 
@@ -272,6 +289,11 @@ export default function Explore() {
   const [restaurants, setRestaurants] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
 
+  // Near Me state
+  const [viewMode, setViewMode] = useState("all"); // "all" | "nearby"
+  const [nearbyLoading, setNearbyLoading] = useState(false);
+  const [geoError, setGeoError] = useState("");
+
   const filters = ["All","Nearby","Instant Book","Top Rated","Pre-Order"];
 
   useEffect(() => {
@@ -286,6 +308,11 @@ export default function Explore() {
 
   // Fetch real restaurants from API
   useEffect(() => {
+    // Don't refetch via normal flow if we're in Near Me mode
+    if (viewMode === "nearby") return;
+
+    setLoadingData(true);
+    setGeoError("");
     const params = new URLSearchParams();
     if (filter === "Instant Book") params.set("instantBook", "true");
     if (filter === "Top Rated") params.set("sort", "rating");
@@ -293,29 +320,73 @@ export default function Explore() {
     axios.get(`/restaurants?${params.toString()}`)
       .then(res => {
         const raw = res.data.data.restaurants || [];
-        // Map MongoDB fields to what Card component expects
-        const mapped = raw.map(r => ({
-          id: r._id,
-          name: r.name,
-          cuisine: Array.isArray(r.cuisine) ? r.cuisine.join(" · ") : r.cuisine || "",
-          area: r.address?.area || r.address?.city || "Pune",
-          address: [r.address?.street, r.address?.area, r.address?.city].filter(Boolean).join(", "),
-          rating: r.avgRating || "New",
-          seats: r.totalSeats || 0,
-          price: r.priceRange === "budget" ? "₹" : r.priceRange === "moderate" ? "₹₹" : r.priceRange === "expensive" ? "₹₹₹" : "₹₹₹₹",
-          tag: r.isFeatured ? "Featured" : r.avgRating >= 4.5 ? "Top Rated" : r.instantBookingEnabled ? "Instant Book" : "New",
-          tagColor: r.isFeatured ? "#8B5CF6" : r.avgRating >= 4.5 ? C.amber : r.instantBookingEnabled ? C.green : C.blue,
-          image: r.coverImage || r.images?.[0] || "https://images.unsplash.com/photo-1552566626-52f8b828add9?w=800",
-          hours: r.operatingHours?.[0] ? `${r.operatingHours[0].open} - ${r.operatingHours[0].close}` : "Open Daily",
-          distance: "—",
-          reservationFee: r.reservationFee,
-          instantBookingEnabled: r.instantBookingEnabled,
-        }));
-        setRestaurants(mapped);
+        setRestaurants(mapRaw(raw));
       })
       .catch(() => setRestaurants([]))
       .finally(() => setLoadingData(false));
-  }, [filter]);
+  }, [filter, viewMode]);
+
+  // Helper: map raw API restaurant to Card-compatible shape
+  function mapRaw(raw, withDist = false) {
+    return raw.map(r => ({
+      id: r._id,
+      name: r.name,
+      cuisine: Array.isArray(r.cuisine) ? r.cuisine.join(" · ") : r.cuisine || "",
+      area: r.address?.area || r.address?.city || "Pune",
+      address: [r.address?.street, r.address?.area, r.address?.city].filter(Boolean).join(", "),
+      rating: r.avgRating || "New",
+      seats: r.totalSeats || 0,
+      price: r.priceRange === "budget" ? "₹" : r.priceRange === "moderate" ? "₹₹" : r.priceRange === "expensive" ? "₹₹₹" : "₹₹₹₹",
+      tag: r.isFeatured ? "Featured" : r.avgRating >= 4.5 ? "Top Rated" : r.instantBookingEnabled ? "Instant Book" : "New",
+      tagColor: r.isFeatured ? "#8B5CF6" : r.avgRating >= 4.5 ? C.amber : r.instantBookingEnabled ? C.green : C.blue,
+      image: r.coverImage || r.images?.[0] || "https://images.unsplash.com/photo-1552566626-52f8b828add9?w=800",
+      hours: r.operatingHours?.[0] ? `${r.operatingHours[0].open} - ${r.operatingHours[0].close}` : "Open Daily",
+      distance: r.address?.area || "Pune",
+      distanceKm: withDist && r.distanceKm !== undefined ? r.distanceKm : undefined,
+      reservationFee: r.reservationFee,
+      instantBookingEnabled: r.instantBookingEnabled,
+    }));
+  }
+
+  // Handler: switch to Near Me mode
+  const handleNearMe = () => {
+    if (!navigator.geolocation) {
+      setGeoError("Geolocation is not supported by your browser. Showing all restaurants.");
+      setViewMode("all");
+      return;
+    }
+    setNearbyLoading(true);
+    setGeoError("");
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        try {
+          const res = await axios.get(`/restaurants/nearby?lat=${latitude}&lng=${longitude}&maxDistance=20`);
+          const raw = res.data.data.restaurants || [];
+          setRestaurants(mapRaw(raw, true));
+          setViewMode("nearby");
+        } catch {
+          setGeoError("Could not fetch nearby restaurants. Showing all restaurants.");
+          setViewMode("all");
+        } finally {
+          setNearbyLoading(false);
+        }
+      },
+      () => {
+        setGeoError("Location access denied. Showing all restaurants.");
+        setViewMode("all");
+        setNearbyLoading(false);
+      },
+      { timeout: 10000 }
+    );
+  };
+
+  // Handler: switch back to All mode
+  const handleAllRestaurants = () => {
+    setViewMode("all");
+    setGeoError("");
+    setFilter("All"); // re-trigger the main useEffect
+  };
 
   const shown = restaurants.filter(r =>
     !search ||
@@ -323,6 +394,8 @@ export default function Explore() {
     r.cuisine.toLowerCase().includes(search.toLowerCase()) ||
     r.area.toLowerCase().includes(search.toLowerCase())
   );
+
+  const isLoadingAny = loadingData || nearbyLoading;
 
   return (
     <div style={{ background: C.bg, minHeight:"100vh", fontFamily:"'DM Sans', sans-serif" }}>
@@ -338,6 +411,9 @@ export default function Explore() {
         @keyframes slideUp {
           from { opacity:0; transform:translateY(30px); }
           to   { opacity:1; transform:translateY(0); }
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
         }
         .hero-overlay { animation: fadeIn 0.8s ease; }
         .hero-text { animation: slideUp 0.8s ease 0.2s both; }
@@ -581,7 +657,9 @@ export default function Explore() {
               color: C.amber, fontSize: 11, fontWeight: 700,
               letterSpacing: 2.5, textTransform: "uppercase",
               fontFamily: "'DM Sans', sans-serif", marginBottom: 6,
-            }}>📍 Near You · Pune</p>
+            }}>
+              {viewMode === "nearby" ? "📡 Sorted by distance" : "📍 Near You · Pune"}
+            </p>
             <h2 style={{
               fontFamily: "'Playfair Display', serif",
               fontSize: "clamp(22px, 3vw, 34px)",
@@ -590,10 +668,70 @@ export default function Explore() {
               {shown.length} Restaurant{shown.length !== 1 ? 's' : ''} Available
             </h2>
           </div>
+
+          {/* All | Near Me toggle */}
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <button
+              id="toggle-all-restaurants"
+              onClick={handleAllRestaurants}
+              style={{
+                background: viewMode === "all" ? C.amber : "#fff",
+                border: `1.5px solid ${viewMode === "all" ? C.amber : C.border}`,
+                color: viewMode === "all" ? "#fff" : C.textMid,
+                fontFamily: "'DM Sans', sans-serif",
+                fontWeight: 600, fontSize: 13,
+                padding: "8px 18px", borderRadius: 100,
+                cursor: "pointer", transition: "all 0.2s ease",
+              }}
+            >
+              🗂️ All Restaurants
+            </button>
+            <button
+              id="toggle-near-me"
+              onClick={handleNearMe}
+              disabled={nearbyLoading}
+              style={{
+                background: viewMode === "nearby" ? C.green : "#fff",
+                border: `1.5px solid ${viewMode === "nearby" ? C.green : C.border}`,
+                color: viewMode === "nearby" ? "#fff" : C.textMid,
+                fontFamily: "'DM Sans', sans-serif",
+                fontWeight: 600, fontSize: 13,
+                padding: "8px 18px", borderRadius: 100,
+                cursor: nearbyLoading ? "not-allowed" : "pointer",
+                transition: "all 0.2s ease",
+                opacity: nearbyLoading ? 0.7 : 1,
+                display: "flex", alignItems: "center", gap: 6,
+              }}
+            >
+              {nearbyLoading ? (
+                <>
+                  <span style={{ display: "inline-block", width: 12, height: 12, border: "2px solid #ccc", borderTopColor: C.green, borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+                  Locating…
+                </>
+              ) : "📡 Near Me"}
+            </button>
+          </div>
         </div>
 
+        {/* Geo error / denial banner */}
+        {geoError && (
+          <div style={{
+            marginBottom: 18,
+            padding: "10px 16px",
+            background: "#fff8f0",
+            border: `1.5px solid ${C.amber}60`,
+            borderRadius: 10,
+            fontSize: 13,
+            color: C.textMid,
+            fontFamily: "'DM Sans', sans-serif",
+          }}>
+            ⚠️ {geoError}
+          </div>
+        )}
+
         <div style={{ display: "flex", gap: 8, marginBottom: 26, flexWrap: "wrap" }}>
-          {filters.map(f => (
+          {/* Hide standard filters when in Near Me mode */}
+          {viewMode === "all" && filters.map(f => (
             <button key={f} onClick={() => setFilter(f)} style={{
               background: filter === f ? C.amber : "#fff",
               border: `1.5px solid ${filter === f ? C.amber : C.border}`,
@@ -612,9 +750,9 @@ export default function Explore() {
           gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))",
           gap: 24,
         }}>
-          {loadingData ? (
+          {isLoadingAny ? (
             <div style={{ gridColumn:"1/-1", textAlign:"center", padding:"60px 0", color:C.textMuted, fontSize:15 }}>
-              Loading restaurants…
+              {nearbyLoading ? "Fetching restaurants near you…" : "Loading restaurants…"}
             </div>
           ) : shown.length === 0 ? (
             <div style={{

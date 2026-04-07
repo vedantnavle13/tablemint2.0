@@ -8,6 +8,9 @@ const { validate, schemas } = require('../middleware/validate');
 // ─── Public routes ─────────────────────────────────────────────────────────
 router.get('/', rc.getAllRestaurants);
 
+// Near-me endpoint — must come before /:id to avoid being caught by param
+router.get('/nearby', rc.getNearbyRestaurants);
+
 // ✅ CRITICAL: Static paths MUST come before /:id — "my" would match as :id otherwise
 router.get('/my/all', protect, restrictTo('admin', 'owner'), rc.getMyRestaurants);
 
