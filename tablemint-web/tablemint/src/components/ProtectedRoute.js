@@ -6,33 +6,33 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
 
   if (loading) {
     return (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '100vh',
-          background: '#FDFAF6',
-          fontFamily: "'DM Sans', sans-serif",
-        }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{
-              width: 50,
-              height: 50,
-              border: '4px solid #E8E0D0',
-              borderTop: '4px solid #D4883A',
-              borderRadius: '50%',
-              animation: 'spin 1s linear infinite',
-              margin: '0 auto 16px',
-            }} />
-            <p style={{ fontSize: 14, color: '#6B5B45' }}>Loading...</p>
-          </div>
-          <style>{`
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        background: '#FDFAF6',
+        fontFamily: "'DM Sans', sans-serif",
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: 50,
+            height: 50,
+            border: '4px solid #E8E0D0',
+            borderTop: '4px solid #D4883A',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 16px',
+          }} />
+          <p style={{ fontSize: 14, color: '#6B5B45' }}>Loading...</p>
+        </div>
+        <style>{`
           @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
           }
         `}</style>
-        </div>
+      </div>
     );
   }
 

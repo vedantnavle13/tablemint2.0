@@ -1,4 +1,6 @@
 const express = require('express');
+const http = require('http');              // ← new
+const { Server } = require('socket.io');  // ← new
 const mongoose = require('mongoose');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
@@ -10,7 +12,21 @@ const path = require('path');
 require('dotenv').config();
 
 const app = express();
+const httpServer = http.createServer(app); // ← wrap Express in http server
 
+// ─── Socket.io setup ─────────────────────────────────────────────────────────
+const io = new Server(httpServer, {
+  cors: {
+    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    credentials: true,
+  },
+});
+// Register io singleton so controllers can emit events without prop-drilling
+require('./src/socket/io-instance').setIO(io);
+// Attach socket logic (JWT auth + room events)
+require('./src/socket/socket')(io);
+
+// ─── Express middleware (unchanged from your original) ────────────────────────
 app.use(helmet());
 app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:3000',
@@ -40,30 +56,31 @@ app.use(cookieParser());
 app.use(mongoSanitize());
 
 if (process.env.NODE_ENV === 'development') app.use(morgan('dev'));
-
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// ─── Routes ──────────────────────────────────────────────────────────────────
 app.get('/health', (req, res) => res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() }));
 app.get('/api', (req, res) => res.status(200).json({ status: 'ok', message: 'TableMint API' }));
 
-// Routes
-app.use('/api/auth',       require('./src/routes/authRoutes'));
-app.use('/api/restaurants',require('./src/routes/restaurantRoutes'));
-app.use('/api/reservations',require('./src/routes/reservationRoutes'));
-app.use('/api/reviews',    require('./src/routes/reviewRoutes'));
-app.use('/api/admin',      require('./src/routes/adminRoutes'));
-app.use('/api/captain',    require('./src/routes/captainRoutes'));
+app.use('/api/auth', require('./src/routes/authRoutes'));
+app.use('/api/restaurants', require('./src/routes/restaurantRoutes'));
+app.use('/api/reservations', require('./src/routes/reservationRoutes'));
+app.use('/api/reviews', require('./src/routes/reviewRoutes'));
+app.use('/api/admin', require('./src/routes/adminRoutes'));
+app.use('/api/captain', require('./src/routes/captainRoutes'));
 app.use('/api/superadmin', require('./src/routes/superAdminRoutes'));
+app.use('/api/groups', require('./src/routes/groupRoutes')); // ← new
 
 const AppError = require('./src/utils/AppError');
 app.all('*', (req, res, next) => next(new AppError(`Route ${req.originalUrl} not found.`, 404)));
 app.use(require('./src/middleware/errorHandler'));
 
+// ─── Start server (listen on httpServer, not app) ─────────────────────────────
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log('✅ MongoDB connected successfully');
     const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => {
+    httpServer.listen(PORT, () => {   // ← httpServer, not app.listen
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📡 Health check: http://localhost:${PORT}/health`);
       console.log(`🍽️  API base: http://localhost:${PORT}/api`);

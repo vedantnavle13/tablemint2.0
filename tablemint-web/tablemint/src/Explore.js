@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import Navbar from "./Navbar";
+import ShareToGroupModal from "./components/ShareToGroupModal";
 
 
 const C = {
@@ -21,6 +22,7 @@ const C = {
 
 function Card({ r, navigate }) {
   const [hovered, setHovered] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const lowSeats = r.seats <= 6;
 
   return (
@@ -210,23 +212,52 @@ function Card({ r, navigate }) {
             </span>
           </div>
           
-          <button onClick={() => navigate(`/restaurant/${r.id}`)} style={{
-            background: hovered ? C.amber : "transparent",
-            border: `2px solid ${hovered ? C.amber : C.border}`,
-            color: hovered ? "#fff" : C.textMid,
-            fontFamily: "'DM Sans', sans-serif",
-            fontWeight: 700,
-            fontSize: 13,
-            padding: "10px 24px",
-            borderRadius: 12,
-            cursor: "pointer",
-            transition: "all 0.25s ease",
-            whiteSpace: "nowrap",
-          }}>
-            Reserve →
-          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowShareModal(true); }}
+              title="Share to a group"
+              style={{
+                background: "transparent",
+                border: `2px solid ${C.border}`,
+                color: C.textMuted,
+                fontFamily: "'DM Sans', sans-serif",
+                fontWeight: 600,
+                fontSize: 13,
+                padding: "10px 14px",
+                borderRadius: 12,
+                cursor: "pointer",
+                transition: "all 0.25s ease",
+                display: "flex", alignItems: "center", gap: 5,
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "#3b82f6"; e.currentTarget.style.color = "#3b82f6"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.textMuted; }}
+            >
+              👥 Share
+            </button>
+            <button onClick={() => navigate(`/restaurant/${r.id}`)} style={{
+              background: hovered ? C.amber : "transparent",
+              border: `2px solid ${hovered ? C.amber : C.border}`,
+              color: hovered ? "#fff" : C.textMid,
+              fontFamily: "'DM Sans', sans-serif",
+              fontWeight: 700,
+              fontSize: 13,
+              padding: "10px 24px",
+              borderRadius: 12,
+              cursor: "pointer",
+              transition: "all 0.25s ease",
+              whiteSpace: "nowrap",
+            }}>
+              Reserve →
+            </button>
+          </div>
         </div>
       </div>
+      {showShareModal && (
+        <ShareToGroupModal
+          restaurant={{ _id: r.id, name: r.name, image: r.image, cuisine: r.cuisine, rating: r.rating, price: r.price }}
+          onClose={() => setShowShareModal(false)}
+        />
+      )}
     </div>
   );
 }

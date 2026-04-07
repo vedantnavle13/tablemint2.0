@@ -4,13 +4,13 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api
 
 // Helper function to get auth token
 const getAuthToken = () => {
-  return localStorage.getItem('tablemint_token');
+  return localStorage.getItem('token');
 };
 
 // Helper function to make API calls
-const apiCall = async (endpoint, options = {}) => {
+export const apiCall = async (endpoint, options = {}) => {
   const url = `${API_BASE_URL}${endpoint}`;
-  
+
   const headers = {
     'Content-Type': 'application/json',
     ...options.headers,
@@ -50,8 +50,8 @@ export const authAPI = {
     });
 
     if (response.token) {
-      localStorage.setItem('tablemint_token', response.token);
-      localStorage.setItem('tablemint_user', JSON.stringify(response.data.user));
+      localStorage.setItem('token', response.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
     }
 
     return response;
@@ -63,8 +63,8 @@ export const authAPI = {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      localStorage.removeItem('tablemint_token');
-      localStorage.removeItem('tablemint_user');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
     }
   },
 
@@ -74,7 +74,7 @@ export const authAPI = {
 };
 
 export const getStoredUser = () => {
-  const userStr = localStorage.getItem('tablemint_user');
+  const userStr = localStorage.getItem('user');
   return userStr ? JSON.parse(userStr) : null;
 };
 
