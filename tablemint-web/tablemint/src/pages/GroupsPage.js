@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiCall } from '../services/api';
-import Navbar from '/Users/vedant13/tablemint/tablemint-web/tablemint/src/Navbar.js';  // adjust path if yours differs
+import Navbar from '../Navbar';
 
 export default function GroupsPage() {
     const navigate = useNavigate();
