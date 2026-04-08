@@ -25,11 +25,12 @@ exports.createReservation = catchAsync(async (req, res, next) => {
   if (totalSeats === 0)
     return next(new AppError('This restaurant has not set up any tables yet. Bookings are not available.', 400));
 
-  // Check total capacity
+  // Check total capacity (safety check)
   if (numberOfGuests > totalSeats)
     return next(new AppError(`Not enough seats. Maximum capacity is ${totalSeats}.`, 400));
 
-  // Check time-slot availability — look for overlapping reservations (±2 hours window)
+  // ✅ CRITICAL FIX: Check time-slot availability BEFORE creating reservation
+  // Look for overlapping reservations in ±2 hour window
   const slotStart = new Date(new Date(bookingTime).getTime() - 2 * 60 * 60 * 1000);
   const slotEnd   = new Date(new Date(bookingTime).getTime() + 2 * 60 * 60 * 1000);
 
@@ -42,10 +43,13 @@ exports.createReservation = catchAsync(async (req, res, next) => {
   const bookedGuests = overlapping.reduce((sum, r) => sum + r.numberOfGuests, 0);
   const availableSeats = totalSeats - bookedGuests;
 
-  if (availableSeats < numberOfGuests)
+  // ✅ CRITICAL: Must validate available seats for this time slot
+  if (availableSeats < numberOfGuests) {
     return next(new AppError(
-      `Not enough seats available for this time slot. Only ${availableSeats} seat${availableSeats !== 1 ? 's' : ''} available.`, 400
+      `Not enough seats available for this time slot. Only ${availableSeats} seat${availableSeats !== 1 ? 's' : ''} available. Please choose a different time.`, 
+      400
     ));
+  }
 
   const rawItems = preOrderItems || req.body.preOrder?.items || [];
   const safePreOrderItems = (Array.isArray(rawItems) ? rawItems : []).reduce((acc, item) => {
