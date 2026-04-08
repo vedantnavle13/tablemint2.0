@@ -43,6 +43,7 @@ router.post('/:id/captains',           restrictTo('admin', 'owner'), rc.assignCa
 // Verification
 router.post('/:id/verify',         restrictTo('admin'),          rc.verifyRestaurant);
 router.post('/:id/regenerate-otp', restrictTo('admin', 'owner'), rc.regenerateOtp);
+router.get('/:id/my-otp',          restrictTo('owner'), rc.getRestaurantOtp);
 router.post('/:id/create-admin',   restrictTo('admin', 'owner'), rc.createRestaurantAdmin);
 
 module.exports = router;
