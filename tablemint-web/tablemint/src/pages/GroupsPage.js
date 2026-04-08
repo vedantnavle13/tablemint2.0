@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+
 import { apiCall } from '../services/api';
+import { useNavigate } from 'react-router-dom';
 import Navbar from '../Navbar';
+
 
 export default function GroupsPage() {
     const navigate = useNavigate();
