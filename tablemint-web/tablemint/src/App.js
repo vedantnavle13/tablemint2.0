@@ -15,6 +15,8 @@ import AccountPage from './AccountPage';
 import CaptainPage from './CaptainPage';
 import SuperAdminPortal from './SuperAdminPortal';
 import SuperAdminLogin from './SuperAdminLogin';
+import GroupsPage from './pages/GroupsPage';
+import GroupRoomPage from './pages/GroupRoomPage';
 
 export default function App() {
     return (
@@ -22,20 +24,20 @@ export default function App() {
             <BrowserRouter>
                 <Routes>
                     {/* Public */}
-                    <Route path="/"               element={<Home />} />
-                    <Route path="/explore"        element={<Explore />} />
+                    <Route path="/" element={<Home />} />
+                    <Route path="/explore" element={<Explore />} />
                     <Route path="/restaurant/:id" element={<RestaurantDetail />} />
-                    <Route path="/for-restaurants"element={<ForRestaurants />} />
+                    <Route path="/for-restaurants" element={<ForRestaurants />} />
 
                     {/* Customer auth */}
-                    <Route path="/login"    element={<LoginPage />} />
+                    <Route path="/login" element={<LoginPage />} />
                     <Route path="/register" element={<RegisterPage />} />
 
                     {/* Owner / Admin auth */}
                     <Route path="/owner/login" element={<OwnerLoginPage />} />
                     <Route path="/admin/login" element={<OwnerLoginPage />} />
 
-                    {/* Super Admin — separate login, not linked from public site */}
+                    {/* Super Admin */}
                     <Route path="/superadmin/login" element={<SuperAdminLogin />} />
                     <Route path="/superadmin" element={
                         <ProtectedRoute allowedRoles={['superadmin']}>
@@ -78,6 +80,18 @@ export default function App() {
                     <Route path="/owner-portal/dashboard" element={
                         <ProtectedRoute allowedRoles={['owner']}>
                             <OwnerDashboard />
+                        </ProtectedRoute>
+                    } />
+
+                    {/* ── Group Planning (customers only) ── */}
+                    <Route path="/groups" element={
+                        <ProtectedRoute allowedRoles={['customer']}>
+                            <GroupsPage />
+                        </ProtectedRoute>
+                    } />
+                    <Route path="/groups/:id" element={
+                        <ProtectedRoute allowedRoles={['customer']}>
+                            <GroupRoomPage />
                         </ProtectedRoute>
                     } />
                 </Routes>

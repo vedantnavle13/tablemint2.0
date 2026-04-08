@@ -42,6 +42,7 @@ function SideNav({ active, setActive, restaurantCount, onLogout }) {
   const items = [
     { id:"overview",    icon:"🏠", label:"Overview" },
     { id:"restaurants", icon:"🏢", label:"My Restaurants", badge:restaurantCount },
+    { id:"revenue",     icon:"💰", label:"Revenue" },
     { id:"add",         icon:"➕", label:"Add Restaurant" },
   ];
   return (
@@ -1067,6 +1068,88 @@ function Overview({ user, restaurants, onNavigate }) {
   );
 }
 
+// ─── Revenue View ─────────────────────────────────────────────────────────────
+function RevenueView() {
+  const [data, setData]     = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    fetch('http://localhost:5000/api/admin/owner/revenue', {
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+    })
+      .then(r => r.json())
+      .then(d => setData(d.status === 'success' ? d.data : null))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div style={{ padding: '60px 0', textAlign: 'center', color: C.textMuted }}>Loading revenue…</div>;
+  if (!data)   return <div style={{ padding: '60px 0', textAlign: 'center', color: C.textMuted }}>Could not load revenue data.</div>;
+
+  return (
+    <div>
+      <div style={{ marginBottom: 32 }}>
+        <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 30, fontWeight: 700, color: C.text, marginBottom: 8 }}>💰 Revenue Overview</h1>
+        <p style={{ fontSize: 14, color: C.textMuted }}>All-time reservation fee revenue across your {data.restaurants.length} restaurant(s).</p>
+      </div>
+
+      {/* Totals */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20, marginBottom: 36 }}>
+        {[
+          { icon: '💰', label: 'Total Revenue', value: `₹${(data.total.revenue || 0).toLocaleString()}` },
+          { icon: '📋', label: 'Total Reservations', value: data.total.reservations },
+          { icon: '🏢', label: 'Restaurants', value: data.restaurants.length },
+        ].map(({ icon, label, value }) => (
+          <div key={label} style={{ background: C.bgCard, padding: 24, borderRadius: 16, border: `1px solid ${C.border}` }}>
+            <div style={{ fontSize: 32, marginBottom: 10 }}>{icon}</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 }}>{label}</div>
+            <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 30, fontWeight: 700, color: C.text }}>{value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Per-restaurant breakdown */}
+      {data.restaurants.length === 0 ? (
+        <div style={{ padding: '60px 0', textAlign: 'center', color: C.textMuted }}>No restaurants found.</div>
+      ) : (
+        <div style={{ background: C.bgCard, borderRadius: 20, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
+          <div style={{ padding: '20px 28px', borderBottom: `1px solid ${C.border}` }}>
+            <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: C.text }}>Per-Restaurant Breakdown</h3>
+          </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+              <thead><tr style={{ background: C.bgSoft, borderBottom: `2px solid ${C.border}` }}>
+                {['RESTAURANT', 'STATUS', 'RATING', 'RESERVATIONS', 'REVENUE', 'NO-SHOWS'].map(h => (
+                  <th key={h} style={{ padding: '13px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: C.textMuted, letterSpacing: 1 }}>{h}</th>
+                ))}
+              </tr></thead>
+              <tbody>
+                {data.restaurants.map(r => (
+                  <tr key={r._id} style={{ borderBottom: `1px solid ${C.border}`, transition: 'background 0.15s' }}
+                    onMouseEnter={e => e.currentTarget.style.background = C.bgSoft}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                    <td style={{ padding: '14px 16px', fontSize: 14, fontWeight: 700, color: C.text }}>{r.name}</td>
+                    <td style={{ padding: '14px 16px' }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, color: r.isActive ? C.green : C.red, background: (r.isActive ? C.green : C.red) + '18' }}>
+                        {r.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '14px 16px', fontSize: 14, color: C.text }}>{r.avgRating ? `${r.avgRating}⭐` : '—'}</td>
+                    <td style={{ padding: '14px 16px', fontSize: 15, fontWeight: 700, color: C.text }}>{r.reservations}</td>
+                    <td style={{ padding: '14px 16px', fontFamily: "'Playfair Display', serif", fontSize: 18, fontWeight: 700, color: C.amber }}>₹{(r.revenue || 0).toLocaleString()}</td>
+                    <td style={{ padding: '14px 16px', fontSize: 14, color: C.red, fontWeight: 600 }}>{r.noShows}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main Owner Dashboard ─────────────────────────────────────────────────────
 
 export default function OwnerDashboard() {
@@ -1111,6 +1194,7 @@ export default function OwnerDashboard() {
         }
       }} onAdd={() => setActive("add")} />;
       case "add":         return <AddRestaurantForm onSuccess={handleRestaurantAdded} />;
+      case "revenue":     return <RevenueView />;
       default:            return null;
     }
   };

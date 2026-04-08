@@ -5,108 +5,79 @@ const AuthContext = createContext();
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
   return context;
 };
 
-// Configure axios defaults
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 axios.defaults.baseURL = API_URL;
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null); // ← expose raw token for socket
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  // Check if user is logged in on mount
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
 
-    if (token && storedUser) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      setUser(JSON.parse(storedUser));
+    if (storedToken && storedUser) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+      setToken(storedToken);
+      const parsedUser = JSON.parse(storedUser);
+      if (parsedUser) parsedUser._id = parsedUser._id || parsedUser.id;
+      setUser(parsedUser);
       setIsLoggedIn(true);
     }
     setLoading(false);
   }, []);
 
   const login = async (email, password) => {
-    try {
-      const response = await axios.post('/auth/login', { email, password });
+    const response = await axios.post('/auth/login', { email, password });
+    const { token: newToken, data } = response.data;
+    const userData = data.user;
+    if (userData) userData._id = userData._id || userData.id;
 
-      const { token, data } = response.data;
-      const userData = data.user;
+    localStorage.setItem('token', newToken);
+    localStorage.setItem('user', JSON.stringify(userData));
+    axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
 
-      // Store token and user
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(userData));
-
-      // Set axios default header
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-      setUser(userData);
-      setIsLoggedIn(true);
-
-      return userData;
-    } catch (error) {
-      console.error('Login error:', error);
-      throw error;
-    }
+    setToken(newToken);
+    setUser(userData);
+    setIsLoggedIn(true);
+    return userData;
   };
 
   const logout = async () => {
-    try {
-      await axios.post('/auth/logout');
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      // Clear local storage
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-
-      // Clear axios header
-      delete axios.defaults.headers.common['Authorization'];
-
-      setUser(null);
-      setIsLoggedIn(false);
-    }
+    try { await axios.post('/auth/logout'); } catch { }
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    delete axios.defaults.headers.common['Authorization'];
+    setToken(null);
+    setUser(null);
+    setIsLoggedIn(false);
   };
 
   const register = async (userData) => {
-    try {
-      const response = await axios.post('/auth/register', userData);
+    const response = await axios.post('/auth/register', userData);
+    const { token: newToken, data } = response.data;
+    const newUser = data.user;
+    if (newUser) newUser._id = newUser._id || newUser.id;
 
-      const { token, data } = response.data;
-      const user = data.user;
+    localStorage.setItem('token', newToken);
+    localStorage.setItem('user', JSON.stringify(newUser));
+    axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
 
-      // Store token and user
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-
-      // Set axios default header
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-      setUser(user);
-      setIsLoggedIn(true);
-
-      return user;
-    } catch (error) {
-      console.error('Registration error:', error);
-      throw error;
-    }
+    setToken(newToken);
+    setUser(newUser);
+    setIsLoggedIn(true);
+    return newUser;
   };
 
-  const value = {
-    user,
-    loading,
-    isLoggedIn,
-    login,
-    logout,
-    register,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, token, loading, isLoggedIn, login, logout, register }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };

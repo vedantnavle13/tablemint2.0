@@ -307,6 +307,60 @@ exports.createRestaurantAdmin = catchAsync(async (req, res, next) => {
     data: { admin: { id: admin._id, name: admin.name, email: admin.email, role: admin.role } },
   });
 });
+
+// ── @GET /api/restaurants/nearby?lat=&lng=&maxDistance= ──────────────────────
+// Returns active restaurants sorted by distance, with km distance in response.
+// Uses MongoDB $nearSphere for sorting by proximity.
+exports.getNearbyRestaurants = catchAsync(async (req, res, next) => {
+  const { lat, lng, maxDistance = 20 } = req.query;
+
+  if (!lat || !lng) {
+    return next(new AppError('Please provide lat and lng query parameters.', 400));
+  }
+
+  const userLat  = parseFloat(lat);
+  const userLng  = parseFloat(lng);
+  const maxDistM = parseFloat(maxDistance) * 1000; // convert km → meters
+
+  // $nearSphere sorts by distance automatically (nearest first)
+  const restaurants = await Restaurant.find({
+    isActive: true,
+    location: {
+      $nearSphere: {
+        $geometry: { type: 'Point', coordinates: [userLng, userLat] },
+        $maxDistance: maxDistM,
+      },
+    },
+  })
+    .select('-menu -__v')
+    .limit(30)
+    .lean();
+
+  // Calculate distance in km for each restaurant using Haversine formula
+  function haversineKm(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Earth radius in km
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  const withDistance = restaurants.map((r) => {
+    const [rLng, rLat] = r.location?.coordinates || [0, 0];
+    const distKm = haversineKm(userLat, userLng, rLat, rLng);
+    return { ...r, distanceKm: Math.round(distKm * 10) / 10 };
+  });
+
+  res.status(200).json({
+    status: 'success',
+    results: withDistance.length,
+    data: { restaurants: withDistance },
+  });
+});
 // ── @GET /api/restaurants/:id/my-otp ─────────────────────────────────────────
 // Owner fetches their restaurant's verification OTP
 exports.getRestaurantOtp = catchAsync(async (req, res, next) => {

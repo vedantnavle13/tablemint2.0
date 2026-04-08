@@ -4,36 +4,46 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api
 
 // Helper function to get auth token
 const getAuthToken = () => {
-  return localStorage.getItem('tablemint_token');
+  return localStorage.getItem('token');
 };
 
-// Helper function to make API calls
-const apiCall = async (endpoint, options = {}) => {
+// Helper function to make API calls.
+// Supports two call styles:
+//   apiCall('/endpoint')                        → GET
+//   apiCall('/endpoint', { method:'POST', body: JSON.stringify({}) })  → options object
+//   apiCall('/endpoint', 'POST', { key: val })  → shorthand (method, plain body object)
+//   apiCall('/endpoint', 'DELETE')              → no body
+export const apiCall = async (endpoint, methodOrOptions = {}, bodyObj) => {
   const url = `${API_BASE_URL}${endpoint}`;
-  
-  const headers = {
-    'Content-Type': 'application/json',
-    ...options.headers,
-  };
 
-  // Add auth token if available
-  const token = getAuthToken();
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  // Detect shorthand (second arg is a string method name)
+  let options;
+  if (typeof methodOrOptions === 'string') {
+    options = {
+      method: methodOrOptions,
+      ...(bodyObj !== undefined ? { body: JSON.stringify(bodyObj) } : {}),
+    };
+  } else {
+    options = methodOrOptions;
   }
 
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(options.headers || {}),
+  };
+
+  const token = getAuthToken();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
   try {
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    });
-
+    const response = await fetch(url, { ...options, headers });
     const data = await response.json();
-
     if (!response.ok) {
-      throw new Error(data.message || 'Something went wrong');
+      // Preserve the full response for callers that read err.response.data
+      const err = new Error(data.message || 'Something went wrong');
+      err.response = { data, status: response.status };
+      throw err;
     }
-
     return data;
   } catch (error) {
     console.error('API Error:', error);
@@ -50,8 +60,8 @@ export const authAPI = {
     });
 
     if (response.token) {
-      localStorage.setItem('tablemint_token', response.token);
-      localStorage.setItem('tablemint_user', JSON.stringify(response.data.user));
+      localStorage.setItem('token', response.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
     }
 
     return response;
@@ -63,8 +73,8 @@ export const authAPI = {
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      localStorage.removeItem('tablemint_token');
-      localStorage.removeItem('tablemint_user');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
     }
   },
 
@@ -74,7 +84,7 @@ export const authAPI = {
 };
 
 export const getStoredUser = () => {
-  const userStr = localStorage.getItem('tablemint_user');
+  const userStr = localStorage.getItem('user');
   return userStr ? JSON.parse(userStr) : null;
 };
 

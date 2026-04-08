@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "./context/AuthContext";
 import Navbar from "./Navbar";
+import ShareToGroupModal from "./components/ShareToGroupModal";
 
 
 const C = {
@@ -76,6 +77,7 @@ export default function RestaurantDetail() {
   const [preOrderItems, setPreOrderItems] = useState([]);
   const [currentImage, setCurrentImage] = useState(0);
   const [isMenuModalOpen, setIsMenuModalOpen] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   useEffect(() => {
     if (bookingMode === "instant") {
@@ -262,6 +264,26 @@ export default function RestaurantDetail() {
                 </div>
               </div>
               <p style={{ fontSize: 14, color: C.textMuted, lineHeight: 1.6 }}>📍 {restaurant.address}</p>
+
+              {/* Share to Group button */}
+              <button
+                onClick={() => setShowShareModal(true)}
+                style={{
+                  marginTop: 20, display: 'inline-flex', alignItems: 'center', gap: 8,
+                  padding: '12px 22px', borderRadius: 12,
+                  background: '#eff6ff', border: '1.5px solid #bfdbfe',
+                  color: '#2563eb', fontSize: 14, fontWeight: 700,
+                  cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#dbeafe'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#eff6ff'; }}
+              >
+                <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+                Share to Group
+              </button>
             </div>
 
             <div style={{
@@ -845,6 +867,20 @@ export default function RestaurantDetail() {
             </div>
           </div>
         </div>
+      )}
+
+      {showShareModal && (
+        <ShareToGroupModal
+          restaurant={{
+            _id: restaurant._id || restaurant.id,
+            name: restaurant.name,
+            image: restaurant.images?.[0] || '',
+            cuisine: Array.isArray(restaurant.cuisine) ? restaurant.cuisine.join(', ') : restaurant.cuisine || '',
+            rating: restaurant.rating || 0,
+            price: restaurant.priceRange || '',
+          }}
+          onClose={() => setShowShareModal(false)}
+        />
       )}
     </div>
   );
