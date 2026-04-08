@@ -21,29 +21,31 @@ exports.createReservation = catchAsync(async (req, res, next) => {
   const tables     = Array.isArray(restaurant.tables) ? restaurant.tables : [];
   const totalSeats = tables.filter(t => t.isAvailable).reduce((s, t) => s + t.capacity, 0);
 
+  // Block booking if restaurant has no tables set up
+  if (totalSeats === 0)
+    return next(new AppError('This restaurant has not set up any tables yet. Bookings are not available.', 400));
+
   // Check total capacity
-  if (totalSeats > 0 && numberOfGuests > totalSeats)
+  if (numberOfGuests > totalSeats)
     return next(new AppError(`Not enough seats. Maximum capacity is ${totalSeats}.`, 400));
 
   // Check time-slot availability — look for overlapping reservations (±2 hours window)
-  if (totalSeats > 0) {
-    const slotStart = new Date(new Date(bookingTime).getTime() - 2 * 60 * 60 * 1000);
-    const slotEnd   = new Date(new Date(bookingTime).getTime() + 2 * 60 * 60 * 1000);
+  const slotStart = new Date(new Date(bookingTime).getTime() - 2 * 60 * 60 * 1000);
+  const slotEnd   = new Date(new Date(bookingTime).getTime() + 2 * 60 * 60 * 1000);
 
-    const overlapping = await Reservation.find({
-      restaurant: restaurantId,
-      scheduledAt: { $gte: slotStart, $lte: slotEnd },
-      status: { $in: ['pending', 'confirmed', 'seated'] },
-    });
+  const overlapping = await Reservation.find({
+    restaurant: restaurantId,
+    scheduledAt: { $gte: slotStart, $lte: slotEnd },
+    status: { $in: ['pending', 'confirmed', 'seated'] },
+  });
 
-    const bookedGuests = overlapping.reduce((sum, r) => sum + r.numberOfGuests, 0);
-    const availableSeats = totalSeats - bookedGuests;
+  const bookedGuests = overlapping.reduce((sum, r) => sum + r.numberOfGuests, 0);
+  const availableSeats = totalSeats - bookedGuests;
 
-    if (availableSeats < numberOfGuests)
-      return next(new AppError(
-        `Not enough seats available for this time slot. Only ${availableSeats} seat${availableSeats !== 1 ? 's' : ''} available.`, 400
-      ));
-  }
+  if (availableSeats < numberOfGuests)
+    return next(new AppError(
+      `Not enough seats available for this time slot. Only ${availableSeats} seat${availableSeats !== 1 ? 's' : ''} available.`, 400
+    ));
 
   const rawItems = preOrderItems || req.body.preOrder?.items || [];
   const safePreOrderItems = (Array.isArray(rawItems) ? rawItems : []).reduce((acc, item) => {
