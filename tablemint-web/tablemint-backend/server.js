@@ -59,8 +59,10 @@ if (process.env.NODE_ENV === 'development') app.use(morgan('dev'));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
+app.get('/', (req, res) => res.status(200).json({ status: 'ok', message: 'TableMint Backend is running 🍽️' }));
 app.get('/health', (req, res) => res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() }));
 app.get('/api', (req, res) => res.status(200).json({ status: 'ok', message: 'TableMint API' }));
+app.get('/favicon.ico', (req, res) => res.status(204).end());
 
 app.use('/api/auth', require('./src/routes/authRoutes'));
 app.use('/api/restaurants', require('./src/routes/restaurantRoutes'));
@@ -78,7 +80,7 @@ app.use(require('./src/middleware/errorHandler'));
 // ─── Start server (listen on httpServer, not app) ─────────────────────────────
 setInterval(() => {
   fetch('https://tablemint-backend.onrender.com/health')
-    .catch(() => {});
+    .catch(() => { });
 }, 14 * 60 * 1000);
 
 mongoose.connect(process.env.MONGO_URI)
