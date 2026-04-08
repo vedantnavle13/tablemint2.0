@@ -76,6 +76,11 @@ app.all('*', (req, res, next) => next(new AppError(`Route ${req.originalUrl} not
 app.use(require('./src/middleware/errorHandler'));
 
 // ─── Start server (listen on httpServer, not app) ─────────────────────────────
+setInterval(() => {
+  fetch('https://tablemint-backend.onrender.com/health')
+    .catch(() => {});
+}, 14 * 60 * 1000);
+
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
     console.log('✅ MongoDB connected successfully');

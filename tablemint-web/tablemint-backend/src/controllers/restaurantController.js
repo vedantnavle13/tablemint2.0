@@ -361,3 +361,27 @@ exports.getNearbyRestaurants = catchAsync(async (req, res, next) => {
     data: { restaurants: withDistance },
   });
 });
+// ── @GET /api/restaurants/:id/my-otp ─────────────────────────────────────────
+// Owner fetches their restaurant's verification OTP
+exports.getRestaurantOtp = catchAsync(async (req, res, next) => {
+  const restaurant = await Restaurant.findById(req.params.id)
+    .select('+verificationOtp +verificationOtpExpires');
+
+  if (!restaurant) return next(new AppError('Restaurant not found.', 404));
+
+  // Only the owner can see their OTP
+  if (restaurant.owner.toString() !== req.user.id)
+    return next(new AppError('Not authorized.', 403));
+
+  if (restaurant.verificationStatus === 'verified')
+    return res.status(200).json({ status: 'success', data: { otp: null, verified: true } });
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      otp: restaurant.verificationOtp,
+      otpExpires: restaurant.verificationOtpExpires,
+      verified: false,
+    },
+  });
+});

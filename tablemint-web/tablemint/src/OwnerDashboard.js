@@ -622,6 +622,58 @@ function TablesSection({ restaurant }) {
 
 // ─── Restaurant Detail View ───────────────────────────────────────────────────
 
+// ── OTP Banner for pending verification ──────────────────────────────────────
+function OtpBanner({ restaurantId }) {
+  const [otp, setOtp] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    axios.get(`/restaurants/${restaurantId}/my-otp`)
+      .then(r => setOtp(r.data.data.otp))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [restaurantId]);
+
+  const handleCopy = () => {
+    if (otp) {
+      navigator.clipboard.writeText(otp);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <div style={{ background:C.amberSoft, border:`2px solid ${C.amber}`, borderRadius:16, padding:"16px 20px", maxWidth:320 }}>
+      <p style={{ fontSize:12, fontWeight:700, color:C.amber, marginBottom:6, textTransform:"uppercase", letterSpacing:0.5 }}>
+        ⏳ Pending Verification
+      </p>
+      <p style={{ fontSize:12, color:C.textMid, lineHeight:1.5, marginBottom:10 }}>
+        Share this OTP with our team when they visit your restaurant to go live.
+      </p>
+      {loading ? (
+        <div style={{ fontSize:12, color:C.textMuted }}>Loading OTP…</div>
+      ) : otp ? (
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <div style={{ background:"#fff", border:`1px solid ${C.amber}`, borderRadius:10,
+            padding:"10px 20px", fontFamily:"monospace", fontSize:26, fontWeight:700,
+            color:C.amber, letterSpacing:6 }}>
+            {otp}
+          </div>
+          <button onClick={handleCopy}
+            style={{ padding:"8px 14px", background:copied?C.green:C.amber, border:"none",
+              borderRadius:8, color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer",
+              fontFamily:"'DM Sans',sans-serif" }}>
+            {copied ? "✓ Copied!" : "Copy"}
+          </button>
+        </div>
+      ) : (
+        <div style={{ fontSize:12, color:C.textMuted }}>OTP not available.</div>
+      )}
+    </div>
+  );
+}
+
 function RestaurantDetail({ restaurant, onBack }) {
   const [tab, setTab] = useState("info");
   const [menuItem, setMenuItem] = useState({ name:"", price:"", category:"main", isVeg:false, description:"" });
@@ -667,12 +719,7 @@ function RestaurantDetail({ restaurant, onBack }) {
           </div>
         </div>
         {restaurant.verificationStatus==="pending" && (
-          <div style={{ background:C.amberSoft, border:`1px solid ${C.amber}40`, borderRadius:12, padding:"12px 16px", maxWidth:280 }}>
-            <p style={{ fontSize:12, fontWeight:700, color:C.amber, marginBottom:4 }}>⏳ Pending Verification</p>
-            <p style={{ fontSize:12, color:C.textMid, lineHeight:1.5 }}>
-              Our team will visit your restaurant. Share the OTP with them to go live.
-            </p>
-          </div>
+          <OtpBanner restaurantId={restaurant._id} />
         )}
       </div>
 
