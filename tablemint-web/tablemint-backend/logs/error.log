@@ -134,3 +134,8 @@
 {"level":"error","message":"401 - Invalid email or password. - /api/auth/login","timestamp":"2026-04-08 00:55:06"}
 {"level":"error","message":"401 - Invalid email or password. - /api/auth/login","timestamp":"2026-04-08 00:55:11"}
 {"level":"error","message":"400 - Not enough seats. Maximum capacity is 2. - /api/reservations","timestamp":"2026-04-08 01:11:26"}
+{"level":"error","message":"400 - OTP has expired. Ask the owner to regenerate it. - /api/superadmin/restaurants/69a5d0df5704bd0e8552747f/verify","timestamp":"2026-04-08 16:23:49"}
+{"level":"error","message":"400 - OTP has expired. Ask the owner to regenerate it. - /api/superadmin/restaurants/69a5d0df5704bd0e8552747f/verify","timestamp":"2026-04-08 16:26:51"}
+{"level":"error","message":"400 - OTP has expired. Ask the owner to regenerate it. - /api/superadmin/restaurants/69a5ce4606b47add2407b2b5/verify","timestamp":"2026-04-08 16:27:05"}
+{"level":"error","message":"Failed to send OTP email: emailTemplates.restaurantVerificationOtp is not a function","stack":"TypeError: emailTemplates.restaurantVerificationOtp is not a function\n    at /Users/vedant13/tablemint/tablemint-web/tablemint-backend/src/controllers/restaurantController.js:99:37\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)","timestamp":"2026-04-08 16:28:23"}
+{"level":"error","message":"400 - Password must be at least 6 characters. - /api/restaurants/69d634cfded435e2608b932f/create-admin","timestamp":"2026-04-08 16:28:23"}

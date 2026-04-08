@@ -80,7 +80,7 @@ app.use(require('./src/middleware/errorHandler'));
 // ─── Start server (listen on httpServer, not app) ─────────────────────────────
 setInterval(() => {
   fetch('https://tablemint-backend.onrender.com/health')
-    .catch(() => {});
+    .catch(() => { });
 }, 14 * 60 * 1000);
 
 mongoose.connect(process.env.MONGO_URI)
