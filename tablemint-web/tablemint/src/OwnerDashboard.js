@@ -1359,7 +1359,7 @@ function RestaurantDetail({ restaurant, onBack }) {
 }
 
 function AddAdminSection({ restaurantId }) {
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [form, setForm] = useState({ name: "", email: "" });
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(null);
   const [msg, setMsg] = useState("");
@@ -1375,16 +1375,15 @@ function AddAdminSection({ restaurantId }) {
   useEffect(() => { refreshAdmins(); }, [restaurantId]);
 
   const handleAdd = async () => {
-    if (!form.name || !form.email || !form.password) { setError("All 3 fields are required."); return; }
-    if (form.password.length < 6) { setError("Password must be at least 6 characters."); return; }
+    if (!form.name || !form.email) { setError("Name and email are required."); return; }
     if (admins.length >= 3) { setError("Maximum 3 admins allowed."); return; }
     setLoading(true); setError(""); setMsg("");
     try {
       await axios.post(`/restaurants/${restaurantId}/create-admin`, form);
-      setMsg("✅ Admin added! They can login at /admin/login with the password you set.");
-      setForm({ name: "", email: "", password: "" });
+      setMsg("✅ Admin added! Their login credentials have been sent to their email.");
+      setForm({ name: "", email: "" });
       refreshAdmins();
-      setTimeout(() => setMsg(""), 4000);
+      setTimeout(() => setMsg(""), 5000);
     } catch (e) {
       setError(e.response?.data?.message || "Failed to create admin.");
     } finally { setLoading(false); }
@@ -1460,9 +1459,12 @@ function AddAdminSection({ restaurantId }) {
       {/* Add form — only show if under 3 */}
       {admins.length < 3 ? (
         <div style={{ background: C.bgCard, borderRadius: 12, border: `1px solid ${C.border}`, padding: 20 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 6 }}>
             Add New Admin ({3 - admins.length} slot{3 - admins.length !== 1 ? "s" : ""} remaining)
           </div>
+          <p style={{ fontSize: 12, color: C.textMuted, marginBottom: 16, lineHeight: 1.6 }}>
+            📧 A secure password will be auto-generated and emailed to the admin.
+          </p>
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <input placeholder="Admin name *" value={form.name}
               onChange={e => setForm(p => ({ ...p, name: e.target.value }))} style={inp}
@@ -1472,18 +1474,14 @@ function AddAdminSection({ restaurantId }) {
               onChange={e => setForm(p => ({ ...p, email: e.target.value }))} style={inp}
               onFocus={e => e.target.style.borderColor = C.amber}
               onBlur={e => e.target.style.borderColor = C.border} />
-            <input placeholder="Set password * (min 6 characters)" type="password" value={form.password}
-              onChange={e => setForm(p => ({ ...p, password: e.target.value }))} style={inp}
-              onFocus={e => e.target.style.borderColor = C.amber}
-              onBlur={e => e.target.style.borderColor = C.border} />
-            <button onClick={handleAdd} disabled={loading || !form.name || !form.email || !form.password}
+            <button onClick={handleAdd} disabled={loading || !form.name || !form.email}
               style={{
                 padding: "12px", borderRadius: 10, border: "none", fontSize: 14, fontWeight: 700,
                 fontFamily: "'DM Sans',sans-serif", transition: "all 0.2s", cursor: "pointer",
-                background: (!form.name || !form.email || !form.password) ? C.bgSoft : C.amber,
-                color: (!form.name || !form.email || !form.password) ? C.textMuted : "#fff"
+                background: (!form.name || !form.email) ? C.bgSoft : C.amber,
+                color: (!form.name || !form.email) ? C.textMuted : "#fff"
               }}>
-              {loading ? "Adding…" : "Add Admin →"}
+              {loading ? "Sending credentials…" : "Add Admin & Send Credentials →"}
             </button>
           </div>
           <p style={{ fontSize: 12, color: C.textMuted, marginTop: 10, lineHeight: 1.6 }}>

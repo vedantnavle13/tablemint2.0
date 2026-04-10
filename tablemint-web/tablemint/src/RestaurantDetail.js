@@ -7,17 +7,17 @@ import ShareToGroupModal from "./components/ShareToGroupModal";
 
 
 const C = {
-  bg:        "#FDFAF6",
-  bgSoft:    "#F5F0E8",
-  bgCard:    "#FFFFFF",
-  border:    "#E8E0D0",
-  amber:     "#D4883A",
+  bg: "#FDFAF6",
+  bgSoft: "#F5F0E8",
+  bgCard: "#FFFFFF",
+  border: "#E8E0D0",
+  amber: "#D4883A",
   amberSoft: "#FBF0E0",
-  text:      "#2C2416",
-  textMid:   "#6B5B45",
+  text: "#2C2416",
+  textMid: "#6B5B45",
   textMuted: "#A0907A",
-  green:     "#4A9B6F",
-  red:       "#D05A4A",
+  green: "#4A9B6F",
+  red: "#D05A4A",
 };
 
 
@@ -114,12 +114,46 @@ export default function RestaurantDetail() {
       .finally(() => setLoadingRestaurant(false));
   }, [id]);
 
+  // ── Reviews ───────────────────────────────────────────────────────────────
+  const [reviews, setReviews]               = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [reviewsTotal, setReviewsTotal]     = useState(0);
+  const [reviewsHasMore, setReviewsHasMore] = useState(false);
+  const [reviewsPage, setReviewsPage]       = useState(1);
+  const [lightboxImg, setLightboxImg]       = useState(null);
+
+  // Fetch reviews (independent of restaurant data)
+  useEffect(() => {
+    setReviewsLoading(true);
+    setReviews([]);
+    axios.get(`/restaurants/${id}/reviews?limit=8&sort=-createdAt`)
+      .then(res => {
+        setReviews(res.data.data?.reviews || []);
+        setReviewsTotal(res.data.total || 0);
+        setReviewsHasMore((res.data.totalPages || 1) > 1);
+        setReviewsPage(1);
+      })
+      .catch(() => {})
+      .finally(() => setReviewsLoading(false));
+  }, [id]);
+
+  const loadMoreReviews = () => {
+    const next = reviewsPage + 1;
+    axios.get(`/restaurants/${id}/reviews?page=${next}&limit=8&sort=-createdAt`)
+      .then(res => {
+        setReviews(p => [...p, ...(res.data.data?.reviews || [])]);
+        setReviewsHasMore(next < (res.data.totalPages || 1));
+        setReviewsPage(next);
+      })
+      .catch(() => {});
+  };
+
   // Recompute distance whenever userLocation or restaurant changes
   useEffect(() => {
     if (!userLocation || !restaurant?.lat || !restaurant?.lng) return;
     const km = haversineKm(userLocation.lat, userLocation.lng, restaurant.lat, restaurant.lng);
     setDistanceKm(Math.round(km * 10) / 10);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userLocation, restaurant]);
 
   const [bookingMode, setBookingMode] = useState("instant");
@@ -141,11 +175,13 @@ export default function RestaurantDetail() {
 
   if (loadingRestaurant) {
     return (
-      <div style={{ minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background: C.bg }}>
-        <div style={{ textAlign:"center" }}>
-          <div style={{ width:48, height:48, border:`4px solid ${C.border}`, borderTop:`4px solid ${C.amber}`,
-            borderRadius:"50%", animation:"spin 1s linear infinite", margin:"0 auto 16px" }} />
-          <p style={{ color:C.textMuted, fontSize:14, fontFamily:"'DM Sans',sans-serif" }}>Loading restaurant…</p>
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.bg }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{
+            width: 48, height: 48, border: `4px solid ${C.border}`, borderTop: `4px solid ${C.amber}`,
+            borderRadius: "50%", animation: "spin 1s linear infinite", margin: "0 auto 16px"
+          }} />
+          <p style={{ color: C.textMuted, fontSize: 14, fontFamily: "'DM Sans',sans-serif" }}>Loading restaurant…</p>
           <style>{`@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}`}</style>
         </div>
       </div>
@@ -174,7 +210,7 @@ export default function RestaurantDetail() {
   };
 
   const updateQuantity = (itemId, change) => {
-    setPreOrderItems(preOrderItems.map(item => 
+    setPreOrderItems(preOrderItems.map(item =>
       item.id === itemId ? { ...item, quantity: Math.max(1, item.quantity + change) } : item
     ));
   };
@@ -221,7 +257,7 @@ export default function RestaurantDetail() {
         preOrderTotal: reservation.preOrderTotal,
       });
       setPreOrderItems([]);
-    } catch(err) {
+    } catch (err) {
       setBookingError(err.response?.data?.message || err.message || "Booking failed. Please try again.");
     } finally {
       setBookingLoading(false);
@@ -319,25 +355,29 @@ export default function RestaurantDetail() {
               </div>
 
               {/* Distance from user + Google Maps link */}
-              <div style={{ display:"flex", flexWrap:"wrap", gap:10, marginBottom:16, alignItems:"center" }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 16, alignItems: "center" }}>
                 {/* Distance badge */}
                 {geoStatus === "loading" && (
-                  <div style={{ display:"flex", alignItems:"center", gap:6,
-                    padding:"6px 14px", borderRadius:20,
-                    background:C.bgSoft, border:`1px solid ${C.border}`,
-                    fontSize:13, color:C.textMuted, fontWeight:600 }}>
-                    <span style={{ display:"inline-block", width:10, height:10,
-                      border:`2px solid ${C.border}`, borderTopColor:C.amber,
-                      borderRadius:"50%", animation:"spin 0.7s linear infinite" }} />
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 6,
+                    padding: "6px 14px", borderRadius: 20,
+                    background: C.bgSoft, border: `1px solid ${C.border}`,
+                    fontSize: 13, color: C.textMuted, fontWeight: 600
+                  }}>
+                    <span style={{
+                      display: "inline-block", width: 10, height: 10,
+                      border: `2px solid ${C.border}`, borderTopColor: C.amber,
+                      borderRadius: "50%", animation: "spin 0.7s linear infinite"
+                    }} />
                     Detecting your location…
                   </div>
                 )}
                 {distanceKm !== null && (
                   <div style={{
-                    display:"inline-flex", alignItems:"center", gap:6,
-                    padding:"6px 14px", borderRadius:20,
-                    background:C.green+"15", border:`1.5px solid ${C.green}40`,
-                    fontSize:13, color:C.green, fontWeight:700,
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "6px 14px", borderRadius: 20,
+                    background: C.green + "15", border: `1.5px solid ${C.green}40`,
+                    fontSize: 13, color: C.green, fontWeight: 700,
                   }}>
                     📍 {distanceKm} km away from you
                   </div>
@@ -350,14 +390,14 @@ export default function RestaurantDetail() {
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{
-                      display:"inline-flex", alignItems:"center", gap:6,
-                      padding:"6px 14px", borderRadius:20,
-                      background:"#EAF4FF", border:"1.5px solid #1a73e840",
-                      fontSize:13, color:"#1a73e8", fontWeight:600,
-                      textDecoration:"none", transition:"all 0.2s",
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      padding: "6px 14px", borderRadius: 20,
+                      background: "#EAF4FF", border: "1.5px solid #1a73e840",
+                      fontSize: 13, color: "#1a73e8", fontWeight: 600,
+                      textDecoration: "none", transition: "all 0.2s",
                     }}
-                    onMouseEnter={e => e.currentTarget.style.background="#dbeafe"}
-                    onMouseLeave={e => e.currentTarget.style.background="#EAF4FF"}
+                    onMouseEnter={e => e.currentTarget.style.background = "#dbeafe"}
+                    onMouseLeave={e => e.currentTarget.style.background = "#EAF4FF"}
                   >
                     🗺️ View on Google Maps
                   </a>
@@ -561,32 +601,343 @@ export default function RestaurantDetail() {
               </div>
             </div>
 
+            {/* ═══════════════════════════════════════════════════════════
+                  REVIEWS SECTION
+            ═══════════════════════════════════════════════════════════ */}
             <div>
-              <h3 style={{
-                fontFamily: "'Playfair Display', serif",
-                fontSize: 28, fontWeight: 700, color: C.text, marginBottom: 20,
-              }}>Customer Reviews ({restaurant.totalReviews})</h3>
-              {restaurant.reviews.map(review => (
-                <div key={review.id} style={{
-                  background: C.bgCard, padding: 20, borderRadius: 12,
-                  border: `1px solid ${C.border}`, marginBottom: 16,
+              {/* ── Section heading ─────────────────────────────────── */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+                <h3 style={{
+                  fontFamily: "'Playfair Display', serif",
+                  fontSize: 28, fontWeight: 700, color: C.text, margin: 0,
+                }}>Customer Reviews</h3>
+                <span style={{
+                  fontSize: 13, fontWeight: 600, color: C.textMuted,
+                  background: C.bgSoft, padding: "5px 14px", borderRadius: 20,
+                  border: `1px solid ${C.border}`,
                 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-                    <div>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: C.text, marginBottom: 4 }}>{review.name}</div>
-                      <div style={{ fontSize: 13, color: C.textMuted }}>{review.date}</div>
+                  {reviewsTotal} review{reviewsTotal !== 1 ? "s" : ""}
+                </span>
+              </div>
+
+              {/* ── Rating summary banner ───────────────────────────── */}
+              {restaurant.totalReviews > 0 && (
+                <div style={{
+                  background: "linear-gradient(135deg, #FFF9F0 0%, #FFF5E6 100%)",
+                  border: `2px solid ${C.amber}30`,
+                  borderRadius: 18, padding: "24px 28px",
+                  marginBottom: 28, display: "flex", gap: 32, alignItems: "center",
+                  flexWrap: "wrap",
+                }}>
+                  {/* Big number */}
+                  <div style={{ textAlign: "center", flexShrink: 0 }}>
+                    <div style={{
+                      fontFamily: "'Playfair Display', serif",
+                      fontSize: 56, fontWeight: 900, color: C.amber, lineHeight: 1,
+                    }}>{(restaurant.avgRating || restaurant.rating || 0).toFixed(1)}</div>
+                    <div style={{ display: "flex", gap: 3, justifyContent: "center", margin: "8px 0" }}>
+                      {[1,2,3,4,5].map(s => (
+                        <span key={s} style={{
+                          fontSize: 20,
+                          color: s <= Math.round(restaurant.avgRating || restaurant.rating || 0) ? C.amber : C.border,
+                        }}>★</span>
+                      ))}
                     </div>
-                    <div style={{ display: "flex", gap: 2 }}>
-                      {[...Array(5)].map((_, i) => (
-                        <span key={i} style={{ color: i < review.rating ? C.amber : C.border, fontSize: 16 }}>★</span>
+                    <div style={{ fontSize: 12, color: C.textMuted, fontWeight: 600 }}>
+                      {restaurant.totalReviews} verified review{restaurant.totalReviews !== 1 ? "s" : ""}
+                    </div>
+                  </div>
+
+                  {/* Star breakdown bars */}
+                  <div style={{ flex: 1, minWidth: 180 }}>
+                    {[5,4,3,2,1].map(star => {
+                      const count = reviews.filter(r => Math.round(r.rating) === star).length;
+                      const pct = reviews.length > 0 ? Math.round((count / reviews.length) * 100) : 0;
+                      return (
+                        <div key={star} style={{
+                          display: "flex", alignItems: "center", gap: 10, marginBottom: 6,
+                        }}>
+                          <span style={{ fontSize: 12, color: C.textMuted, fontWeight: 600, width: 14, textAlign: "right" }}>{star}</span>
+                          <span style={{ color: C.amber, fontSize: 13 }}>★</span>
+                          <div style={{
+                            flex: 1, height: 7, background: C.border, borderRadius: 4, overflow: "hidden",
+                          }}>
+                            <div style={{
+                              width: `${pct}%`, height: "100%",
+                              background: `linear-gradient(90deg, ${C.amber}, #E8A050)`,
+                              borderRadius: 4, transition: "width 0.5s ease",
+                            }} />
+                          </div>
+                          <span style={{ fontSize: 11, color: C.textMuted, width: 28 }}>{count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* ── All review photos grid ──────────────────────────── */}
+              {reviews.some(r => r.media?.length > 0) && (() => {
+                const allPhotos = reviews.flatMap(r =>
+                  (r.media || []).filter(m => m.resourceType !== "video").map(m => ({ url: m.url, reviewer: r.customer?.name || "Guest" }))
+                );
+                if (!allPhotos.length) return null;
+                return (
+                  <div style={{
+                    background: C.bgCard, padding: 24, borderRadius: 16,
+                    border: `1px solid ${C.border}`, marginBottom: 28,
+                  }}>
+                    <h4 style={{
+                      fontFamily: "'Playfair Display', serif",
+                      fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 16,
+                    }}>📸 Guest Photos ({allPhotos.length})</h4>
+                    <div style={{
+                      display: "grid",
+                      gridTemplateColumns: "repeat(auto-fill, minmax(110px, 1fr))",
+                      gap: 8,
+                    }}>
+                      {allPhotos.slice(0, 12).map((ph, idx) => (
+                        <div key={idx}
+                          onClick={() => setLightboxImg(ph.url)}
+                          style={{
+                            height: 110, borderRadius: 10, overflow: "hidden",
+                            cursor: "pointer", border: `1.5px solid ${C.border}`,
+                            transition: "transform 0.2s, box-shadow 0.2s",
+                            position: "relative",
+                          }}
+                          onMouseEnter={e => { e.currentTarget.style.transform = "scale(1.04)"; e.currentTarget.style.boxShadow = "0 6px 20px rgba(0,0,0,0.18)"; }}
+                          onMouseLeave={e => { e.currentTarget.style.transform = "scale(1)"; e.currentTarget.style.boxShadow = "none"; }}
+                        >
+                          <img src={ph.url} alt={ph.reviewer}
+                            style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                            onError={e => { e.target.src = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400"; }}
+                          />
+                          <div style={{
+                            position: "absolute", inset: 0,
+                            background: "linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 50%)",
+                            opacity: 0, transition: "opacity 0.2s",
+                          }}
+                            onMouseEnter={e => { e.currentTarget.style.opacity = 1; }}
+                            onMouseLeave={e => { e.currentTarget.style.opacity = 0; }}
+                          />
+                        </div>
                       ))}
                     </div>
                   </div>
-                  <p style={{ fontSize: 14, color: C.textMid, lineHeight: 1.6, marginBottom: 10 }}>{review.comment}</p>
-                  <div style={{ fontSize: 12, color: C.textMuted }}>👍 {review.helpful} people found this helpful</div>
+                );
+              })()}
+
+              {/* ── Individual reviews ──────────────────────────────── */}
+              {reviewsLoading && reviews.length === 0 ? (
+                <div style={{ padding: "40px", textAlign: "center", color: C.textMuted }}>
+                  <div style={{
+                    width: 36, height: 36, margin: "0 auto 12px",
+                    border: `3px solid ${C.border}`, borderTopColor: C.amber,
+                    borderRadius: "50%", animation: "spin 0.8s linear infinite",
+                  }} />
+                  Loading reviews…
                 </div>
-              ))}
+              ) : reviews.length === 0 ? (
+                <div style={{
+                  background: C.bgCard, border: `1px solid ${C.border}`,
+                  borderRadius: 16, padding: "40px 24px", textAlign: "center",
+                }}>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>⭐</div>
+                  <p style={{ fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 6 }}>No reviews yet</p>
+                  <p style={{ fontSize: 13, color: C.textMuted }}>Be the first to share your experience!</p>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                  {reviews.map(review => (
+                    <div key={review._id} style={{
+                      background: C.bgCard, padding: 22, borderRadius: 14,
+                      border: `1px solid ${C.border}`,
+                      transition: "box-shadow 0.2s",
+                    }}
+                      onMouseEnter={e => e.currentTarget.style.boxShadow = "0 4px 20px rgba(0,0,0,0.07)"}
+                      onMouseLeave={e => e.currentTarget.style.boxShadow = "none"}
+                    >
+                      {/* Row 1: User info + stars */}
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                          <div style={{
+                            width: 40, height: 40, borderRadius: "50%",
+                            background: C.amber + "20",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            fontFamily: "'Playfair Display', serif",
+                            fontSize: 17, fontWeight: 700, color: C.amber, flexShrink: 0,
+                          }}>
+                            {(review.customer?.name || "G")[0].toUpperCase()}
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
+                              {review.customer?.name || "Guest"}
+                            </div>
+                            <div style={{ fontSize: 12, color: C.textMuted }}>
+                              {new Date(review.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+                          <div style={{ display: "flex", gap: 2 }}>
+                            {[1,2,3,4,5].map(i => (
+                              <span key={i} style={{
+                                color: i <= review.rating ? C.amber : C.border,
+                                fontSize: 16,
+                              }}>★</span>
+                            ))}
+                          </div>
+                          <span style={{
+                            fontSize: 11, fontWeight: 700, padding: "2px 10px",
+                            background: C.amber + "15", color: C.amber,
+                            borderRadius: 10, border: `1px solid ${C.amber}30`,
+                          }}>{review.rating}/5</span>
+                        </div>
+                      </div>
+
+                      {/* Review title */}
+                      {review.title && (
+                        <p style={{
+                          fontSize: 15, fontWeight: 700, color: C.text, marginBottom: 6,
+                        }}>{review.title}</p>
+                      )}
+
+                      {/* Comment */}
+                      {review.comment && (
+                        <p style={{ fontSize: 14, color: C.textMid, lineHeight: 1.7, marginBottom: 12 }}>
+                          {review.comment}
+                        </p>
+                      )}
+
+                      {/* Sub-ratings */}
+                      {(review.foodRating || review.serviceRating || review.ambienceRating) && (
+                        <div style={{
+                          display: "flex", gap: 12, marginBottom: 14, flexWrap: "wrap",
+                        }}>
+                          {review.foodRating && (
+                            <span style={{
+                              fontSize: 12, padding: "4px 10px", borderRadius: 20,
+                              background: "#FFF9F0", border: `1px solid ${C.amber}30`,
+                              color: C.amber, fontWeight: 600,
+                            }}>🍽️ Food {review.foodRating}/5</span>
+                          )}
+                          {review.serviceRating && (
+                            <span style={{
+                              fontSize: 12, padding: "4px 10px", borderRadius: 20,
+                              background: "#F0F9FF", border: "1px solid #90CAF930",
+                              color: "#1565C0", fontWeight: 600,
+                            }}>👨‍🍳 Service {review.serviceRating}/5</span>
+                          )}
+                          {review.ambienceRating && (
+                            <span style={{
+                              fontSize: 12, padding: "4px 10px", borderRadius: 20,
+                              background: C.green + "10", border: `1px solid ${C.green}30`,
+                              color: C.green, fontWeight: 600,
+                            }}>✨ Ambience {review.ambienceRating}/5</span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Review photos */}
+                      {review.media?.filter(m => m.resourceType !== "video").length > 0 && (
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          {review.media.filter(m => m.resourceType !== "video").map((m, mi) => (
+                            <div key={mi}
+                              onClick={() => setLightboxImg(m.url)}
+                              style={{
+                                width: 72, height: 72, borderRadius: 8,
+                                overflow: "hidden", cursor: "pointer",
+                                border: `1.5px solid ${C.border}`,
+                                transition: "transform 0.15s",
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.transform = "scale(1.07)"}
+                              onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+                            >
+                              <img src={m.url} alt=""
+                                style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                                onError={e => { e.target.src = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=200"; }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Restaurant response */}
+                      {review.restaurantResponse?.text && (
+                        <div style={{
+                          marginTop: 14, padding: "12px 16px",
+                          background: C.bgSoft, borderRadius: 10,
+                          borderLeft: `3px solid ${C.amber}`,
+                        }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: C.amber, marginBottom: 4, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                            🍽️ Restaurant Response
+                          </div>
+                          <p style={{ fontSize: 13, color: C.textMid, lineHeight: 1.6, margin: 0 }}>
+                            {review.restaurantResponse.text}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+
+                  {/* Load more */}
+                  {reviewsHasMore && (
+                    <button
+                      onClick={loadMoreReviews}
+                      style={{
+                        width: "100%", padding: "13px",
+                        background: "transparent",
+                        border: `1.5px solid ${C.border}`,
+                        borderRadius: 12, color: C.textMid,
+                        fontSize: 14, fontWeight: 600, cursor: "pointer",
+                        fontFamily: "'DM Sans', sans-serif",
+                        transition: "all 0.2s",
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = C.amber; e.currentTarget.style.color = C.amber; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.textMid; }}
+                    >
+                      Load more reviews…
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
+
+            {/* ── Lightbox ───────────────────────────────────────────── */}
+            {lightboxImg && (
+              <div
+                onClick={() => setLightboxImg(null)}
+                style={{
+                  position: "fixed", inset: 0,
+                  background: "rgba(0,0,0,0.88)",
+                  zIndex: 3000,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  padding: 24, cursor: "zoom-out",
+                }}
+              >
+                <img
+                  src={lightboxImg} alt="Review photo"
+                  onClick={e => e.stopPropagation()}
+                  style={{
+                    maxWidth: "90vw", maxHeight: "88vh",
+                    borderRadius: 16, objectFit: "contain",
+                    boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
+                    cursor: "default",
+                  }}
+                />
+                <button
+                  onClick={() => setLightboxImg(null)}
+                  style={{
+                    position: "absolute", top: 20, right: 24,
+                    width: 40, height: 40, borderRadius: "50%",
+                    background: "rgba(255,255,255,0.15)", backdropFilter: "blur(6px)",
+                    border: "1px solid rgba(255,255,255,0.25)",
+                    color: "#fff", fontSize: 20, cursor: "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}
+                >×</button>
+              </div>
+            )}
           </div>
 
           {/* RESERVATION SIDEBAR */}
@@ -763,21 +1114,25 @@ export default function RestaurantDetail() {
 
               {/* Booking success */}
               {bookingSuccess && (
-                <div style={{ background:"#E8F5EE", border:"1px solid #4A9B6F40", borderRadius:12,
-                  padding:16, marginBottom:16 }}>
-                  <div style={{ fontSize:16, fontWeight:700, color:"#4A9B6F", marginBottom:8 }}>
+                <div style={{
+                  background: "#E8F5EE", border: "1px solid #4A9B6F40", borderRadius: 12,
+                  padding: 16, marginBottom: 16
+                }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: "#4A9B6F", marginBottom: 8 }}>
                     ✅ Booking Confirmed!
                   </div>
-                  <div style={{ fontSize:13, color:C.textMid, lineHeight:1.7 }}>
-                    <div>Confirmation Code: <strong style={{fontFamily:"monospace", color:C.amber}}>#{bookingSuccess.confirmationCode}</strong></div>
-                    <div>Date: {new Date(bookingSuccess.scheduledAt).toLocaleString("en-IN",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}</div>
+                  <div style={{ fontSize: 13, color: C.textMid, lineHeight: 1.7 }}>
+                    <div>Confirmation Code: <strong style={{ fontFamily: "monospace", color: C.amber }}>#{bookingSuccess.confirmationCode}</strong></div>
+                    <div>Date: {new Date(bookingSuccess.scheduledAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</div>
                     <div>Guests: {bookingSuccess.numberOfGuests}</div>
                     <div>Reservation Fee: ₹{bookingSuccess.reservationFee}</div>
                     {bookingSuccess.preOrderTotal > 0 && <div>Pre-Order Total: ₹{bookingSuccess.preOrderTotal} (pay at restaurant)</div>}
                   </div>
-                  <button onClick={() => navigate('/account')} style={{ marginTop:10, width:"100%",
-                    padding:"10px", background:C.amber, border:"none", borderRadius:8,
-                    color:"#fff", fontSize:13, fontWeight:700, cursor:"pointer" }}>
+                  <button onClick={() => navigate('/account')} style={{
+                    marginTop: 10, width: "100%",
+                    padding: "10px", background: C.amber, border: "none", borderRadius: 8,
+                    color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer"
+                  }}>
                     View My Bookings →
                   </button>
                 </div>
@@ -785,12 +1140,14 @@ export default function RestaurantDetail() {
 
               {/* Booking error */}
               {bookingError && (
-                <div style={{ background:"#FFF5F5", border:"1px solid #D05A4A30", borderRadius:10,
-                  padding:"12px 14px", marginBottom:16, fontSize:13, color:C.red }}>
+                <div style={{
+                  background: "#FFF5F5", border: "1px solid #D05A4A30", borderRadius: 10,
+                  padding: "12px 14px", marginBottom: 16, fontSize: 13, color: C.red
+                }}>
                   ⚠️ {bookingError}
                   {!isLoggedIn && (
-                    <div style={{ marginTop:8 }}>
-                      <span onClick={() => navigate('/login')} style={{ color:C.amber, fontWeight:700, cursor:"pointer" }}>
+                    <div style={{ marginTop: 8 }}>
+                      <span onClick={() => navigate('/login')} style={{ color: C.amber, fontWeight: 700, cursor: "pointer" }}>
                         Sign in to book →
                       </span>
                     </div>
@@ -860,7 +1217,7 @@ export default function RestaurantDetail() {
                 {[...new Set(restaurant.menu.map(i => i.category))].map(category => {
                   const items = restaurant.menu.filter(item => item.category === category);
                   if (items.length === 0) return null;
-                  const label = { main:"Main Course", starter:"Starters", dessert:"Desserts", beverage:"Beverages", special:"Chef's Special" }[category] || category;
+                  const label = { main: "Main Course", starter: "Starters", dessert: "Desserts", beverage: "Beverages", special: "Chef's Special" }[category] || category;
                   return (
                     <div key={category} style={{ marginBottom: 40 }}>
                       <h3 style={{

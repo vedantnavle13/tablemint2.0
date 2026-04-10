@@ -132,6 +132,13 @@ export default function OwnerLoginPage() {
                         </button>
                     </form>
 
+                    <div style={{ textAlign: 'right', marginTop: 10 }}>
+                        <span onClick={() => navigate('/forgot-password')}
+                            style={{ fontSize: 13, color: C.amber, fontWeight: 600, cursor: 'pointer' }}>
+                            Forgot password?
+                        </span>
+                    </div>
+
                     {!isAdminLogin && (
                         <p style={{ textAlign:'center', marginTop:24, fontSize:14, color:'rgba(255,255,255,0.4)' }}>
                             New restaurant owner?{' '}

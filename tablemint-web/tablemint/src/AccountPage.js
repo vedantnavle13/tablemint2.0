@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import axios from "axios";
+import ReviewModal from "./components/ReviewModal";
 
 const C = {
   bg: "#FDFAF6", bgSoft: "#F5F0E8", bgCard: "#FFFFFF",
@@ -259,16 +260,20 @@ function ProfileTab({ user }) {
 // ─── Bookings Tab ─────────────────────────────────────────────────────────────
 function BookingsTab() {
   const navigate = useNavigate();
-  const [reservations, setReservations] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("all");
-  const [selected, setSelected] = useState(null);
-  const [cancelling, setCancelling] = useState(null);
+  const [reservations, setReservations]   = useState([]);
+  const [loading, setLoading]             = useState(true);
+  const [filter, setFilter]               = useState("all");
+  const [selected, setSelected]           = useState(null);
+  const [cancelling, setCancelling]       = useState(null);
+  // Review state
+  const [reviewTarget, setReviewTarget]   = useState(null); // { reservation, restaurantId, restaurantName }
+  const [reviewedIds, setReviewedIds]     = useState(new Set()); // reservation IDs already reviewed
+  const [reviewSuccess, setReviewSuccess] = useState(null); // reservation _id that just got reviewed
 
   useEffect(() => {
     axios.get("/reservations/my")
       .then(r => setReservations(r.data.data.reservations || []))
-      .catch(() => { })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
@@ -279,16 +284,27 @@ function BookingsTab() {
       await axios.patch(`/reservations/${id}/cancel`, { reason: "Cancelled by customer" });
       setReservations(prev => prev.map(r => r._id === id ? { ...r, status: "cancelled" } : r));
       if (selected?._id === id) setSelected(p => ({ ...p, status: "cancelled" }));
-    } catch (e) { }
-    finally { setCancelling(null); }
+    } catch (e) {} finally { setCancelling(null); }
   };
 
-  const filtered = filter === "all" ? reservations :
-    filter === "upcoming" ? reservations.filter(r => ["pending", "confirmed"].includes(r.status)) :
-      filter === "past" ? reservations.filter(r => ["completed", "cancelled", "no_show"].includes(r.status)) :
-        reservations.filter(r => r.status === filter);
+  // A booking is reviewable if it is confirmed/completed AND the visit date is in the past
+  const isReviewable = (r) =>
+    ["confirmed", "completed", "seated"].includes(r.status) &&
+    new Date(r.scheduledAt) <= new Date();
 
   const canCancel = (r) => ["pending", "confirmed"].includes(r.status);
+
+  const filtered = filter === "all" ? reservations
+    : filter === "upcoming" ? reservations.filter(r => ["pending", "confirmed"].includes(r.status))
+    : filter === "past"     ? reservations.filter(r => ["completed", "cancelled", "no_show"].includes(r.status))
+    : reservations.filter(r => r.status === filter);
+
+  const handleReviewSuccess = (reservationId) => {
+    setReviewedIds(prev => new Set([...prev, reservationId]));
+    setReviewSuccess(reservationId);
+    setReviewTarget(null);
+    setTimeout(() => setReviewSuccess(null), 4000);
+  };
 
   if (loading) return <div style={{ padding: 60, textAlign: "center", color: C.textMuted }}>Loading bookings…</div>;
 
@@ -299,13 +315,29 @@ function BookingsTab() {
         {[{ id: "all", label: "All" }, { id: "upcoming", label: "Upcoming" }, { id: "past", label: "Past" }, { id: "cancelled", label: "Cancelled" }].map(f => (
           <button key={f.id} onClick={() => setFilter(f.id)}
             style={{
-              padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer", border: "none",
-              background: filter === f.id ? C.amber : C.bgSoft, color: filter === f.id ? "#fff" : C.textMid, fontFamily: "'DM Sans',sans-serif"
+              padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 600,
+              cursor: "pointer", border: "none",
+              background: filter === f.id ? C.amber : C.bgSoft,
+              color: filter === f.id ? "#fff" : C.textMid,
+              fontFamily: "'DM Sans',sans-serif",
             }}>
             {f.label}
           </button>
         ))}
       </div>
+
+      {/* Review success toast */}
+      {reviewSuccess && (
+        <div style={{
+          marginBottom: 16, padding: "14px 18px",
+          background: "linear-gradient(135deg, #E8F5EE, #D1EEE0)",
+          border: `1.5px solid ${C.green}40`, borderRadius: 12,
+          fontSize: 14, color: C.green, fontWeight: 700,
+          display: "flex", alignItems: "center", gap: 10,
+        }}>
+          🎉 Thank you! Your review has been submitted successfully.
+        </div>
+      )}
 
       {filtered.length === 0 ? (
         <div style={{ padding: 60, textAlign: "center", background: C.bgCard, borderRadius: 16, border: `1px solid ${C.border}` }}>
@@ -325,40 +357,80 @@ function BookingsTab() {
           {/* Booking list */}
           <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 14 }}>
             {filtered.map(r => {
-              const cfg = STATUS_CONFIG[r.status] || {};
-              const upcoming = canCancel(r);
-              const isSelected = selected?._id === r._id;
+              const cfg         = STATUS_CONFIG[r.status] || {};
+              const upcoming    = canCancel(r);
+              const isSelected  = selected?._id === r._id;
+              const reviewable  = isReviewable(r);
+              const alreadyDone = reviewedIds.has(r._id);
               return (
                 <div key={r._id} onClick={() => setSelected(isSelected ? null : r)}
                   style={{
-                    background: C.bgCard, borderRadius: 14, border: `1.5px solid ${isSelected ? C.amber : C.border}`,
-                    padding: 20, cursor: "pointer", transition: "all 0.2s"
+                    background: C.bgCard, borderRadius: 14,
+                    border: `1.5px solid ${isSelected ? C.amber : C.border}`,
+                    padding: 20, cursor: "pointer", transition: "all 0.2s",
                   }}
                   onMouseEnter={e => { if (!isSelected) e.currentTarget.style.borderColor = C.amber + "80"; }}
                   onMouseLeave={e => { if (!isSelected) e.currentTarget.style.borderColor = C.border; }}>
+
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <div style={{ flex: 1 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
                         <span style={{ fontSize: 20 }}>{cfg.icon}</span>
                         <span style={{ fontFamily: "'Playfair Display',serif", fontSize: 17, fontWeight: 700, color: C.text }}>
                           {r.restaurant?.name || "Restaurant"}
                         </span>
                         <Badge label={cfg.label || r.status} color={cfg.color || C.textMuted} />
                       </div>
-                      <div style={{ display: "flex", gap: 20, fontSize: 13, color: C.textMuted }}>
+                      <div style={{ display: "flex", gap: 16, fontSize: 13, color: C.textMuted, flexWrap: "wrap" }}>
                         <span>📅 {new Date(r.scheduledAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
                         <span>🕐 {new Date(r.scheduledAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span>
                         <span>👥 {r.numberOfGuests} guest{r.numberOfGuests !== 1 ? "s" : ""}</span>
-                        <span style={{ fontFamily: "monospace", color: C.amber, fontWeight: 700 }}>
-                          #{r._id.slice(-8).toUpperCase()}
-                        </span>
+                        <span style={{ fontFamily: "monospace", color: C.amber, fontWeight: 700 }}>#{r._id.slice(-8).toUpperCase()}</span>
                       </div>
                       {r.preOrderItems?.length > 0 && (
                         <div style={{ marginTop: 8, fontSize: 12, color: C.green, fontWeight: 600 }}>
                           🍽️ Pre-order: {r.preOrderItems.length} item{r.preOrderItems.length !== 1 ? "s" : ""} · ₹{r.preOrderTotal}
                         </div>
                       )}
+
+                      {/* ── Review CTA ── */}
+                      {reviewable && (
+                        <div style={{ marginTop: 12 }}>
+                          {alreadyDone ? (
+                            <span style={{
+                              display: "inline-flex", alignItems: "center", gap: 6,
+                              padding: "6px 14px", borderRadius: 20,
+                              background: C.green + "15", border: `1px solid ${C.green}40`,
+                              fontSize: 12, color: C.green, fontWeight: 700,
+                            }}>✅ Review Submitted</span>
+                          ) : (
+                            <button
+                              onClick={e => {
+                                e.stopPropagation();
+                                setReviewTarget({
+                                  reservation: r,
+                                  restaurantId: r.restaurant?._id || r.restaurant,
+                                  restaurantName: r.restaurant?.name || "Restaurant",
+                                });
+                              }}
+                              style={{
+                                display: "inline-flex", alignItems: "center", gap: 6,
+                                padding: "7px 16px", borderRadius: 20,
+                                background: "linear-gradient(135deg, #D4883A, #E8A050)",
+                                border: "none", color: "#fff",
+                                fontSize: 12, fontWeight: 700, cursor: "pointer",
+                                fontFamily: "'DM Sans',sans-serif",
+                                boxShadow: "0 2px 8px rgba(212,136,58,0.3)",
+                                transition: "all 0.2s",
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.transform = "translateY(-1px)"}
+                              onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}
+                            >⭐ Write a Review</button>
+                          )}
+                        </div>
+                      )}
                     </div>
+
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
                       <div style={{ fontSize: 16, fontWeight: 700, color: C.amber }}>₹{r.reservationFee || 0}</div>
                       {upcoming && (
@@ -366,8 +438,10 @@ function BookingsTab() {
                           disabled={cancelling === r._id}
                           onClick={e => { e.stopPropagation(); cancelReservation(r._id); }}
                           style={{
-                            padding: "5px 12px", background: C.red + "15", border: `1px solid ${C.red}30`,
-                            borderRadius: 8, color: C.red, fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "'DM Sans',sans-serif"
+                            padding: "5px 12px", background: C.red + "15",
+                            border: `1px solid ${C.red}30`, borderRadius: 8,
+                            color: C.red, fontSize: 12, fontWeight: 600,
+                            cursor: "pointer", fontFamily: "'DM Sans',sans-serif",
                           }}>
                           {cancelling === r._id ? "Cancelling…" : "Cancel"}
                         </button>
@@ -383,7 +457,7 @@ function BookingsTab() {
           {selected && (
             <div style={{
               width: 300, flexShrink: 0, background: C.bgCard, borderRadius: 16,
-              border: `1px solid ${C.border}`, padding: 24, alignSelf: "flex-start"
+              border: `1px solid ${C.border}`, padding: 24, alignSelf: "flex-start",
             }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
                 <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: 18, color: C.text }}>Booking Details</h3>
@@ -400,16 +474,16 @@ function BookingsTab() {
 
               {[
                 { label: "Booking ID", value: `#${selected._id.slice(-8).toUpperCase()}` },
-                { label: "Date", value: new Date(selected.scheduledAt).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "long" }) },
-                { label: "Time", value: new Date(selected.scheduledAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) },
-                { label: "Guests", value: selected.numberOfGuests },
-                { label: "Type", value: selected.type === "instant" ? "Instant Booking" : "Scheduled" },
-                { label: "Res Fee", value: `₹${selected.reservationFee || 0}` },
-                { label: "Status", value: <Badge label={STATUS_CONFIG[selected.status]?.label} color={STATUS_CONFIG[selected.status]?.color} /> },
+                { label: "Date",       value: new Date(selected.scheduledAt).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "long" }) },
+                { label: "Time",       value: new Date(selected.scheduledAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) },
+                { label: "Guests",     value: selected.numberOfGuests },
+                { label: "Type",       value: selected.type === "instant" ? "Instant Booking" : "Scheduled" },
+                { label: "Res Fee",    value: `₹${selected.reservationFee || 0}` },
+                { label: "Status",     value: <Badge label={STATUS_CONFIG[selected.status]?.label} color={STATUS_CONFIG[selected.status]?.color} /> },
               ].map(({ label, value }) => (
                 <div key={label} style={{
                   display: "flex", justifyContent: "space-between", alignItems: "center",
-                  padding: "8px 0", borderBottom: `1px solid ${C.border}`
+                  padding: "8px 0", borderBottom: `1px solid ${C.border}`,
                 }}>
                   <span style={{ fontSize: 12, color: C.textMuted, fontWeight: 600 }}>{label}</span>
                   <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{value}</span>
@@ -426,10 +500,7 @@ function BookingsTab() {
                 <div style={{ marginTop: 16 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 10 }}>🍽️ Your Pre-Order</div>
                   {selected.preOrderItems.map((item, i) => (
-                    <div key={i} style={{
-                      display: "flex", justifyContent: "space-between", padding: "7px 0",
-                      borderBottom: `1px solid ${C.border}`
-                    }}>
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "7px 0", borderBottom: `1px solid ${C.border}` }}>
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{item.name}</div>
                         <div style={{ fontSize: 11, color: C.textMuted }}>Qty: {item.quantity} × ₹{item.price}</div>
@@ -452,16 +523,48 @@ function BookingsTab() {
                   disabled={cancelling === selected._id}
                   onClick={() => cancelReservation(selected._id)}
                   style={{
-                    width: "100%", marginTop: 16, padding: "11px", background: C.red + "15",
-                    border: `1.5px solid ${C.red}40`, borderRadius: 10, color: C.red,
-                    fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans',sans-serif"
+                    width: "100%", marginTop: 16, padding: "11px",
+                    background: C.red + "15", border: `1.5px solid ${C.red}40`,
+                    borderRadius: 10, color: C.red, fontSize: 14, fontWeight: 700,
+                    cursor: "pointer", fontFamily: "'DM Sans',sans-serif",
                   }}>
                   {cancelling === selected._id ? "Cancelling…" : "Cancel Reservation"}
+                </button>
+              )}
+
+              {/* Review button in detail panel */}
+              {isReviewable(selected) && !reviewedIds.has(selected._id) && (
+                <button
+                  onClick={() => setReviewTarget({
+                    reservation: selected,
+                    restaurantId: selected.restaurant?._id || selected.restaurant,
+                    restaurantName: selected.restaurant?.name || "Restaurant",
+                  })}
+                  style={{
+                    width: "100%", marginTop: 12, padding: "11px",
+                    background: "linear-gradient(135deg, #D4883A, #E8A050)",
+                    border: "none", borderRadius: 10, color: "#fff",
+                    fontSize: 14, fontWeight: 700, cursor: "pointer",
+                    fontFamily: "'DM Sans',sans-serif",
+                    boxShadow: "0 4px 14px rgba(212,136,58,0.3)",
+                  }}>
+                  ⭐ Write a Review
                 </button>
               )}
             </div>
           )}
         </div>
+      )}
+
+      {/* Review Modal */}
+      {reviewTarget && (
+        <ReviewModal
+          reservation={reviewTarget.reservation}
+          restaurantId={reviewTarget.restaurantId}
+          restaurantName={reviewTarget.restaurantName}
+          onClose={() => setReviewTarget(null)}
+          onSuccess={() => handleReviewSuccess(reviewTarget.reservation._id)}
+        />
       )}
     </div>
   );

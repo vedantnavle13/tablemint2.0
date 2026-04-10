@@ -135,6 +135,68 @@ const emailTemplates = {
       </div>
     `,
   }),
+
+  adminWelcome: (admin, restaurant, password) => ({
+    subject: `Welcome to TableMint – Your Admin Credentials for ${restaurant.name}`,
+    html: `
+      <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:600px;margin:0 auto;background:#fff8f0;border-radius:16px;overflow:hidden;">
+        <div style="background:linear-gradient(135deg,#2C2416,#6B5B45);padding:36px 40px;text-align:center;">
+          <div style="font-size:32px;margin-bottom:8px;">🍽️</div>
+          <h1 style="color:#fff;font-size:26px;margin:0;font-weight:700;">Table<span style="color:#D4883A;">Mint</span></h1>
+          <p style="color:rgba(255,255,255,0.6);font-size:13px;margin:6px 0 0;">Restaurant Admin Portal</p>
+        </div>
+        <div style="padding:40px;">
+          <h2 style="color:#2C2416;font-size:22px;margin:0 0 12px;">Hi ${admin.name}, welcome aboard! 👋</h2>
+          <p style="color:#6B5B45;font-size:15px;line-height:1.7;margin-bottom:24px;">
+            You've been added as an <strong>admin</strong> for <strong>${restaurant.name}</strong> on TableMint.
+            Use the credentials below to sign in.
+          </p>
+          <div style="background:#2C2416;border-radius:14px;padding:24px 28px;margin-bottom:28px;">
+            <p style="color:rgba(255,255,255,0.5);font-size:12px;text-transform:uppercase;letter-spacing:2px;margin:0 0 14px;">Your Login Credentials</p>
+            <p style="color:#fff;font-size:14px;margin:0 0 8px;"><span style="color:#A0907A;">Email:</span> <strong>${admin.email}</strong></p>
+            <p style="color:#fff;font-size:14px;margin:0;"><span style="color:#A0907A;">Password:</span> <strong style="color:#D4883A;font-size:18px;letter-spacing:2px;">${password}</strong></p>
+          </div>
+          <p style="color:#6B5B45;font-size:14px;line-height:1.7;margin-bottom:8px;">
+            Sign in at: <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin/login" style="color:#D4883A;font-weight:700;">${process.env.FRONTEND_URL || 'http://localhost:3000'}/admin/login</a>
+          </p>
+          <p style="color:#A0907A;font-size:13px;line-height:1.7;">
+            ⚠️ Please change your password after first login using the "Forgot Password" option.
+          </p>
+        </div>
+        <div style="background:#f5ede3;padding:20px 40px;text-align:center;border-top:1px solid #E8E0D0;">
+          <p style="color:#A0907A;font-size:12px;margin:0;">© ${new Date().getFullYear()} TableMint — Discover Pune's Finest Tables</p>
+        </div>
+      </div>
+    `,
+  }),
+
+  forgotPassword: (resetURL, user) => ({
+    subject: 'TableMint – Reset Your Password',
+    html: `
+      <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:600px;margin:0 auto;background:#fff8f0;border-radius:16px;overflow:hidden;">
+        <div style="background:linear-gradient(135deg,#2C2416,#6B5B45);padding:36px 40px;text-align:center;">
+          <div style="font-size:32px;margin-bottom:8px;">🔑</div>
+          <h1 style="color:#fff;font-size:26px;margin:0;font-weight:700;">Table<span style="color:#D4883A;">Mint</span></h1>
+          <p style="color:rgba(255,255,255,0.6);font-size:13px;margin:6px 0 0;">Password Reset Request</p>
+        </div>
+        <div style="padding:40px;">
+          <h2 style="color:#2C2416;font-size:22px;margin:0 0 12px;">Hi ${user.name},</h2>
+          <p style="color:#6B5B45;font-size:15px;line-height:1.7;margin-bottom:28px;">
+            We received a request to reset your password. Click the button below — this link expires in <strong>15 minutes</strong>.
+          </p>
+          <div style="text-align:center;margin-bottom:28px;">
+            <a href="${resetURL}" style="display:inline-block;background:#D4883A;color:#fff;padding:16px 36px;border-radius:12px;text-decoration:none;font-size:16px;font-weight:700;box-shadow:0 4px 16px rgba(212,136,58,0.4);">Reset My Password →</a>
+          </div>
+          <p style="color:#A0907A;font-size:13px;line-height:1.7;">
+            If you didn't request this, you can safely ignore this email. Your password will remain unchanged.
+          </p>
+        </div>
+        <div style="background:#f5ede3;padding:20px 40px;text-align:center;border-top:1px solid #E8E0D0;">
+          <p style="color:#A0907A;font-size:12px;margin:0;">© ${new Date().getFullYear()} TableMint — Discover Pune's Finest Tables</p>
+        </div>
+      </div>
+    `,
+  }),
 };
 
 module.exports = { sendEmail, emailTemplates };

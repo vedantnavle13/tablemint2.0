@@ -9,6 +9,8 @@ import ForRestaurants from './ForRestaurants';
 import LoginPage from './LoginPage';
 import RegisterPage from './RegisterPage';
 import OtpVerifyPage from './OtpVerifyPage';
+import ForgotPasswordPage from './ForgotPasswordPage';
+import ResetPasswordPage from './ResetPasswordPage';
 import OwnerLoginPage from './OwnerLoginPage';
 import OwnerRegisterPage from './OwnerRegisterPage';
 import Dashboard from './Dashboard';
@@ -35,6 +37,8 @@ export default function App() {
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/register" element={<RegisterPage />} />
                     <Route path="/verify-otp" element={<OtpVerifyPage />} />
+                    <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                    <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
 
                     {/* Owner / Admin auth */}
                     <Route path="/owner/login" element={<OwnerLoginPage />} />

@@ -71,7 +71,7 @@ exports.getRestaurant = catchAsync(async (req, res, next) => {
   // If not found as active, try inactive (for owner viewing pending/deactivated)
   if (!restaurant && isMongoId) {
     restaurant = await Restaurant.findById(req.params.id)
-        .populate('owner', 'name email').populate('captains', 'name email');
+      .populate('owner', 'name email').populate('captains', 'name email');
   }
 
   if (!restaurant) return next(new AppError('Restaurant not found.', 404));
@@ -106,8 +106,8 @@ exports.createRestaurant = catchAsync(async (req, res, next) => {
   // Validate GeoJSON location
   const coords = location?.coordinates;
   if (!coords || !Array.isArray(coords) || coords.length !== 2
-      || typeof coords[0] !== 'number' || typeof coords[1] !== 'number'
-      || (coords[0] === 0 && coords[1] === 0)) {
+    || typeof coords[0] !== 'number' || typeof coords[1] !== 'number'
+    || (coords[0] === 0 && coords[1] === 0)) {
     return next(new AppError('Valid restaurant location (latitude & longitude) is required. Please use "Use My Location" or enter coordinates manually.', 400));
   }
   // ────────────────────────────────────────────────────────────────────────────
@@ -241,8 +241,8 @@ exports.assignCaptain = catchAsync(async (req, res, next) => {
 // ── @GET /api/restaurants/my/all ─────────────────────────────────────────────
 exports.getMyRestaurants = catchAsync(async (req, res, next) => {
   const restaurants = await Restaurant.find({ owner: req.user.id })
-      .select('name address verificationStatus isActive avgRating totalReviews coverImage createdAt')
-      .sort('-createdAt').lean();
+    .select('name address verificationStatus isActive avgRating totalReviews coverImage createdAt')
+    .sort('-createdAt').lean();
 
   res.status(200).json({ status: 'success', results: restaurants.length, data: { restaurants } });
 });
@@ -250,7 +250,7 @@ exports.getMyRestaurants = catchAsync(async (req, res, next) => {
 // ── @GET /api/restaurants/:id/admins ─────────────────────────────────────────
 exports.getRestaurantAdmins = catchAsync(async (req, res, next) => {
   const restaurant = await Restaurant.findById(req.params.id)
-      .populate('captains', 'name email role createdAt isActive');
+    .populate('captains', 'name email role createdAt isActive');
   if (!restaurant) return next(new AppError('Restaurant not found.', 404));
   if (req.user.role !== 'admin' && restaurant.owner.toString() !== req.user.id)
     return next(new AppError('Not authorized.', 403));
@@ -318,26 +318,80 @@ exports.createRestaurantAdmin = catchAsync(async (req, res, next) => {
   if (req.user.role !== 'admin' && restaurant.owner.toString() !== req.user.id)
     return next(new AppError('Not authorized.', 403));
 
-  const { name, email, password } = req.body;
+  const { name, email } = req.body;
   if (!name || !email) return next(new AppError('Name and email are required.', 400));
-  if (!password || password.length < 6) return next(new AppError('Password must be at least 6 characters.', 400));
 
-  const existing = await User.findOne({ email });
-  if (existing) return next(new AppError('An account with this email already exists.', 400));
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return next(new AppError('Please provide a valid email address.', 400));
+  }
 
-  const admin = await User.create({ name, email, password, role: 'admin', assignedRestaurant: restaurant._id, isActive: true });
+  // If a deactivated account exists with this email, delete it so the email is reusable
+  const existing = await User.findOne({ email: email.toLowerCase().trim() });
+  if (existing) {
+    if (!existing.isActive) {
+      await User.findByIdAndDelete(existing._id);
+    } else {
+      return next(new AppError('An active account with this email already exists.', 400));
+    }
+  }
 
+  /**
+   * Generate a 12-character password that ALWAYS satisfies complexity:
+   * at least 1 uppercase, 1 lowercase, 1 digit, rest random.
+   * Shuffled to prevent predictable patterns.
+   */
+  const generateSecurePassword = () => {
+    const upper   = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const lower   = 'abcdefghijkmnopqrstuvwxyz';
+    const digits  = '23456789';
+    const special = '!@#$%^';
+    const all     = upper + lower + digits + special;
+    const mandatory = [
+      upper[Math.floor(Math.random() * upper.length)],
+      lower[Math.floor(Math.random() * lower.length)],
+      digits[Math.floor(Math.random() * digits.length)],
+    ];
+    const rest = Array.from({ length: 9 }, () => all[Math.floor(Math.random() * all.length)]);
+    return [...mandatory, ...rest].sort(() => 0.5 - Math.random()).join('');
+  };
+
+  const rawPassword = generateSecurePassword();
+
+  const admin = await User.create({
+    name: name.trim(),
+    email: email.toLowerCase().trim(),
+    password: rawPassword,        // Mongoose pre-save hook hashes this automatically
+    role: 'admin',
+    assignedRestaurant: restaurant._id,
+    isActive: true,
+    isVerified: true,             // Admin accounts skip OTP verification
+  });
+
+  // Link the admin into the restaurant's captains array
   if (!restaurant.captains.includes(admin._id)) {
     restaurant.captains.push(admin._id);
     await restaurant.save({ validateBeforeSave: false });
   }
 
+  // Email the admin their temporary credentials
+  try {
+    const tpl = emailTemplates.adminWelcome(admin, restaurant, rawPassword);
+    await sendEmail({ to: admin.email, ...tpl });
+    logger.info(`Admin credentials emailed to ${admin.email} for restaurant ${restaurant.name}`);
+  } catch (e) {
+    logger.error(`Failed to send admin welcome email to ${admin.email}:`, e.message);
+    // Don't fail the request — admin was created; owner can share credentials manually
+  }
+
   res.status(201).json({
     status: 'success',
-    message: `Admin created successfully for ${restaurant.name}.`,
+    message: `Admin created! Login credentials have been emailed to ${admin.email}.`,
     data: { admin: { id: admin._id, name: admin.name, email: admin.email, role: admin.role } },
   });
 });
+
 
 // ── @GET /api/restaurants/nearby?lat=&lng=&maxDistance= ──────────────────────
 // Returns active restaurants sorted by distance, with km distance in response.
@@ -349,8 +403,8 @@ exports.getNearbyRestaurants = catchAsync(async (req, res, next) => {
     return next(new AppError('Please provide lat and lng query parameters.', 400));
   }
 
-  const userLat  = parseFloat(lat);
-  const userLng  = parseFloat(lng);
+  const userLat = parseFloat(lat);
+  const userLng = parseFloat(lng);
   const maxDistM = parseFloat(maxDistance) * 1000; // convert km → meters
 
   // $nearSphere sorts by distance automatically (nearest first)
@@ -375,8 +429,8 @@ exports.getNearbyRestaurants = catchAsync(async (req, res, next) => {
     const a =
       Math.sin(dLat / 2) ** 2 +
       Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) ** 2;
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
@@ -486,7 +540,7 @@ exports.uploadRestaurantPhotos = catchAsync(async (req, res, next) => {
     message: `${uploaded.length} photo(s) uploaded successfully.`,
     data: {
       coverImage: restaurant.coverImage,
-      gallery:    restaurant.gallery,
+      gallery: restaurant.gallery,
     },
   });
 });

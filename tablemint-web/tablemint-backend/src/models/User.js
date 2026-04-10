@@ -12,7 +12,7 @@ const userSchema = new mongoose.Schema(
     name:  { type: String, required: [true, 'Name is required'], trim: true },
     email: { type: String, required: [true, 'Email is required'], unique: true, lowercase: true, trim: true },
     phone: { type: String, trim: true },
-    password: { type: String, required: [true, 'Password is required'], minlength: [6, 'Password must be at least 6 characters'], select: false },
+    password: { type: String, required: [true, 'Password is required'], minlength: [8, 'Password must be at least 8 characters'], select: false },
     role: {
       type: String,
       // ✅ superadmin added — has access to restaurant verification portal
@@ -69,7 +69,8 @@ userSchema.methods.generateJWT = function () {
 userSchema.methods.generatePasswordResetToken = function () {
   const token = crypto.randomBytes(32).toString('hex');
   this.passwordResetToken = crypto.createHash('sha256').update(token).digest('hex');
-  this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
+  // Token expires in 15 minutes for adequate time to complete reset
+  this.passwordResetExpires = Date.now() + 15 * 60 * 1000;
   return token;
 };
 
