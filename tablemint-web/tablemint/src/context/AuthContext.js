@@ -14,7 +14,7 @@ axios.defaults.baseURL = API_URL;
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null); // ← expose raw token for socket
+  const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
@@ -33,6 +33,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
+  // ── login: email + password → JWT (only works for verified accounts) ──────
   const login = async (email, password) => {
     const response = await axios.post('/auth/login', { email, password });
     const { token: newToken, data } = response.data;
@@ -59,24 +60,38 @@ export const AuthProvider = ({ children }) => {
     setIsLoggedIn(false);
   };
 
+  // ── register: creates unverified account + sends OTP email ───────────────
+  // Returns { email, role } — does NOT log in automatically.
   const register = async (userData) => {
     const response = await axios.post('/auth/register', userData);
+    return response.data.data; // { email, role }
+  };
+
+  // ── verifyOtp: submits 6-digit code → logs in if correct ─────────────────
+  const verifyOtp = async (email, otp) => {
+    const response = await axios.post('/auth/verify-otp', { email, otp });
     const { token: newToken, data } = response.data;
-    const newUser = data.user;
-    if (newUser) newUser._id = newUser._id || newUser.id;
+    const userData = data.user;
+    if (userData) userData._id = userData._id || userData.id;
 
     localStorage.setItem('token', newToken);
-    localStorage.setItem('user', JSON.stringify(newUser));
+    localStorage.setItem('user', JSON.stringify(userData));
     axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
 
     setToken(newToken);
-    setUser(newUser);
+    setUser(userData);
     setIsLoggedIn(true);
-    return newUser;
+    return userData;
+  };
+
+  // ── resendOtp: request a fresh OTP for the given email ───────────────────
+  const resendOtp = async (email) => {
+    const response = await axios.post('/auth/send-otp', { email });
+    return response.data;
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, isLoggedIn, login, logout, register }}>
+    <AuthContext.Provider value={{ user, token, loading, isLoggedIn, login, logout, register, verifyOtp, resendOtp }}>
       {children}
     </AuthContext.Provider>
   );

@@ -15,7 +15,7 @@ const reviewSchema = new mongoose.Schema(
     reservation: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Reservation',
-      default: null,
+      required: [true, 'A confirmed reservation is required to leave a review'],
     },
     rating: {
       type: Number,
@@ -38,6 +38,15 @@ const reviewSchema = new mongoose.Schema(
     serviceRating: { type: Number, min: 1, max: 5 },
     ambienceRating: { type: Number, min: 1, max: 5 },
     valueRating: { type: Number, min: 1, max: 5 },
+
+    // ── Cloudinary media attachments ──────────────────────────────────────────────
+    media: [
+      {
+        url:          { type: String, required: true },
+        publicId:     { type: String, required: true },
+        resourceType: { type: String, enum: ['image', 'video'], default: 'image' },
+      },
+    ],
 
     // Restaurant response
     restaurantResponse: {

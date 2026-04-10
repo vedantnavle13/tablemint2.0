@@ -142,3 +142,30 @@
 {"level":"error","message":"400 - OTP has expired. Ask the owner to regenerate it. - /api/superadmin/restaurants/69a5ce4606b47add2407b2b5/verify","timestamp":"2026-04-08 16:27:05"}
 {"level":"error","message":"Failed to send OTP email: emailTemplates.restaurantVerificationOtp is not a function","stack":"TypeError: emailTemplates.restaurantVerificationOtp is not a function\n    at /Users/vedant13/tablemint/tablemint-web/tablemint-backend/src/controllers/restaurantController.js:99:37\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)","timestamp":"2026-04-08 16:28:23"}
 {"level":"error","message":"400 - Password must be at least 6 characters. - /api/restaurants/69d634cfded435e2608b932f/create-admin","timestamp":"2026-04-08 16:28:23"}
+{"level":"info","message":"Email sent: <383ccf84-34cb-d34c-76c4-c8e18074716f@tablemint.com>","timestamp":"2026-04-08 22:03:27"}
+{"level":"info","message":"Email sent: <3238f9d4-b4b3-ccf3-4964-23757b44d874@tablemint.com>","timestamp":"2026-04-08 22:04:32"}
+{"level":"info","message":"Email sent: <c62b06d7-660f-ffa6-376e-ac72fd69cddf@tablemint.com>","timestamp":"2026-04-08 22:06:17"}
+{"level":"error","message":"401 - Invalid email or password. - /api/auth/login","timestamp":"2026-04-10 07:14:39"}
+{"level":"error","message":"403 - Your email address has not been verified. Please check your inbox for the verification code. - /api/auth/login","timestamp":"2026-04-10 07:14:43"}
+{"level":"error","message":"401 - Invalid email or password. - /api/auth/login","timestamp":"2026-04-10 07:17:10"}
+{"level":"error","message":"403 - Your email address has not been verified. Please check your inbox for the verification code. - /api/auth/login","timestamp":"2026-04-10 07:17:14"}
+{"level":"info","message":"Email sent: <1d840851-e8c8-5cde-1e5c-02891ff278d7@tablemint.com>","timestamp":"2026-04-10 07:27:21"}
+{"level":"info","message":"Email sent: <78c0f465-41ad-847f-09ac-cf70832121ce@tablemint.com>","timestamp":"2026-04-10 07:30:14"}
+{"level":"error","message":"Failed to send OTP email: emailTemplates.restaurantVerificationOtp is not a function","stack":"TypeError: emailTemplates.restaurantVerificationOtp is not a function\n    at /Users/vedant13/tablemint/tablemint-web/tablemint-backend/src/controllers/restaurantController.js:100:37\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)","timestamp":"2026-04-10 07:44:35"}
+{"level":"error","message":"400 - Password must be at least 6 characters. - /api/restaurants/69d85d0bac7c83c78c42df79/create-admin","timestamp":"2026-04-10 07:44:35"}
+{"level":"info","message":"[Photos] 1 photo(s) uploaded for restaurant 69d85d0bac7c83c78c42df79","timestamp":"2026-04-10 07:45:42"}
+{"level":"error","message":"Failed to send OTP email: emailTemplates.restaurantVerificationOtp is not a function","stack":"TypeError: emailTemplates.restaurantVerificationOtp is not a function\n    at /Users/vedant13/tablemint/tablemint-web/tablemint-backend/src/controllers/restaurantController.js:100:37\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)","timestamp":"2026-04-10 07:46:38"}
+{"level":"error","message":"400 - Password must be at least 6 characters. - /api/restaurants/69d85d85ac7c83c78c42dfa0/create-admin","timestamp":"2026-04-10 07:46:38"}
+{"level":"info","message":"[Photos] 4 photo(s) uploaded for restaurant 69d85d85ac7c83c78c42dfa0","timestamp":"2026-04-10 07:47:29"}
+{"level":"error","message":"Failed to send OTP email: emailTemplates.restaurantVerificationOtp is not a function","stack":"TypeError: emailTemplates.restaurantVerificationOtp is not a function\n    at /Users/vedant13/tablemint/tablemint-web/tablemint-backend/src/controllers/restaurantController.js:100:37\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)","timestamp":"2026-04-10 07:48:02"}
+{"level":"error","message":"400 - Password must be at least 6 characters. - /api/restaurants/69d85dd9ac7c83c78c42dfc6/create-admin","timestamp":"2026-04-10 07:48:02"}
+{"level":"error","message":"401 - Invalid email or password. - /api/auth/login","timestamp":"2026-04-10 07:48:47"}
+{"level":"error","message":"403 - Your email address has not been verified. Please check your inbox for the verification code. - /api/auth/login","timestamp":"2026-04-10 07:49:43"}
+{"level":"error","message":"403 - Your email address has not been verified. Please check your inbox for the verification code. - /api/auth/login","timestamp":"2026-04-10 07:52:18"}
+{"level":"error","message":"400 - This restaurant has not set up any tables yet. Bookings are not available. - /api/reservations","timestamp":"2026-04-10 07:55:22"}
+{"level":"error","message":"Failed to send OTP email: emailTemplates.restaurantVerificationOtp is not a function","stack":"TypeError: emailTemplates.restaurantVerificationOtp is not a function\n    at /Users/vedant13/tablemint/tablemint-web/tablemint-backend/src/controllers/restaurantController.js:130:37\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)","timestamp":"2026-04-10 08:17:24"}
+{"level":"error","message":"400 - Password must be at least 6 characters. - /api/restaurants/69d864bc240d3bae8d2b7021/create-admin","timestamp":"2026-04-10 08:17:24"}
+{"level":"info","message":"[Photos] 1 photo(s) uploaded for restaurant 69d864bc240d3bae8d2b7021","timestamp":"2026-04-10 08:17:36"}
+{"level":"error","message":"Failed to send OTP email: emailTemplates.restaurantVerificationOtp is not a function","stack":"TypeError: emailTemplates.restaurantVerificationOtp is not a function\n    at /Users/vedant13/tablemint/tablemint-web/tablemint-backend/src/controllers/restaurantController.js:130:37\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)","timestamp":"2026-04-10 08:22:14"}
+{"level":"error","message":"400 - Password must be at least 6 characters. - /api/restaurants/69d865de240d3bae8d2b7044/create-admin","timestamp":"2026-04-10 08:22:14"}
+{"level":"info","message":"[Photos] 1 photo(s) uploaded for restaurant 69d865de240d3bae8d2b7044","timestamp":"2026-04-10 08:22:26"}

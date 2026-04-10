@@ -5,6 +5,7 @@ const catchAsync = require('../utils/catchAsync');
 const crypto = require('crypto');
 const { sendEmail, emailTemplates } = require('../utils/email');
 const logger = require('../utils/logger');
+const { uploadToCloudinary, uploadManyToCloudinary, deleteFromCloudinary } = require('../utils/cloudinary');
 
 // ── @GET /api/restaurants ─────────────────────────────────────────────────────
 exports.getAllRestaurants = catchAsync(async (req, res, next) => {
@@ -81,6 +82,36 @@ const generateOtp = () => Math.floor(100000 + Math.random() * 900000).toString()
 
 // ── @POST /api/restaurants ────────────────────────────────────────────────────
 exports.createRestaurant = catchAsync(async (req, res, next) => {
+  // ── Validate required fields early ──────────────────────────────────────────
+  const { email, address, priceRange, location } = req.body;
+
+  if (!email || !email.trim()) {
+    return next(new AppError('Restaurant email is required.', 400));
+  }
+  if (!address?.street?.trim()) {
+    return next(new AppError('Street address is required.', 400));
+  }
+  if (!address?.area?.trim()) {
+    return next(new AppError('Area / locality is required.', 400));
+  }
+  if (!address?.city?.trim()) {
+    return next(new AppError('City is required.', 400));
+  }
+  if (!address?.pincode?.trim()) {
+    return next(new AppError('Pincode is required.', 400));
+  }
+  if (!priceRange) {
+    return next(new AppError('Price range is required.', 400));
+  }
+  // Validate GeoJSON location
+  const coords = location?.coordinates;
+  if (!coords || !Array.isArray(coords) || coords.length !== 2
+      || typeof coords[0] !== 'number' || typeof coords[1] !== 'number'
+      || (coords[0] === 0 && coords[1] === 0)) {
+    return next(new AppError('Valid restaurant location (latitude & longitude) is required. Please use "Use My Location" or enter coordinates manually.', 400));
+  }
+  // ────────────────────────────────────────────────────────────────────────────
+
   const otp = generateOtp();
   const otpExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
@@ -383,5 +414,121 @@ exports.getRestaurantOtp = catchAsync(async (req, res, next) => {
       otpExpires: restaurant.verificationOtpExpires,
       verified: false,
     },
+  });
+});
+
+// ── @POST /api/restaurants/:id/photos ──────────────────────────────────────────
+// Uploads multiple restaurant photos to Cloudinary and persists URLs + public_ids.
+// Field name: "photos" (multipart/form-data)
+// Query: ?replace=true  →  clears existing gallery before adding new ones
+// Query: ?setCover=true →  first uploaded photo also becomes the cover image
+exports.uploadRestaurantPhotos = catchAsync(async (req, res, next) => {
+  // 1. Auth check
+  const restaurant = await Restaurant.findById(req.params.id);
+  if (!restaurant) return next(new AppError('Restaurant not found.', 404));
+  if (req.user.role !== 'admin' && restaurant.owner.toString() !== req.user.id) {
+    return next(new AppError('Not authorized to upload photos for this restaurant.', 403));
+  }
+
+  // 2. Require at least one file
+  if (!req.files || req.files.length === 0) {
+    return next(new AppError('No photos uploaded. Please attach at least one image.', 400));
+  }
+
+  // 3. Upload all files to Cloudinary in parallel
+  const folder = `tablemint/restaurants/${restaurant._id}`;
+  let uploaded;
+  try {
+    uploaded = await uploadManyToCloudinary(
+      req.files.map((f) => ({ buffer: f.buffer, mimetype: f.mimetype, originalname: f.originalname })),
+      { folder }
+    );
+  } catch (err) {
+    logger.error('[Cloudinary] Restaurant photo upload failed:', err);
+    return next(new AppError('Failed to upload photos to Cloudinary. Please try again.', 502));
+  }
+
+  // 4. Optionally clear existing gallery first
+  if (req.query.replace === 'true') {
+    // Delete old assets from Cloudinary (best-effort)
+    for (const item of restaurant.gallery) {
+      await deleteFromCloudinary(item.publicId, 'image');
+    }
+    restaurant.gallery = [];
+  }
+
+  // 5. First file becomes cover image if:
+  //    - ?setCover=true  OR  no cover image exists yet
+  const shouldSetCover = req.query.setCover === 'true' || !restaurant.coverImage?.url;
+  if (shouldSetCover && uploaded.length > 0) {
+    // Delete old cover from Cloudinary if replacing
+    if (restaurant.coverImage?.publicId) {
+      await deleteFromCloudinary(restaurant.coverImage.publicId, 'image');
+    }
+    restaurant.coverImage = { url: uploaded[0].url, publicId: uploaded[0].publicId };
+    // Remaining files go into gallery
+    for (let i = 1; i < uploaded.length; i++) {
+      restaurant.gallery.push({ url: uploaded[i].url, publicId: uploaded[i].publicId });
+    }
+  } else {
+    // All files go to gallery
+    for (const result of uploaded) {
+      restaurant.gallery.push({ url: result.url, publicId: result.publicId });
+    }
+  }
+
+  await restaurant.save({ validateBeforeSave: false });
+
+  logger.info(`[Photos] ${uploaded.length} photo(s) uploaded for restaurant ${restaurant._id}`);
+
+  res.status(200).json({
+    status: 'success',
+    message: `${uploaded.length} photo(s) uploaded successfully.`,
+    data: {
+      coverImage: restaurant.coverImage,
+      gallery:    restaurant.gallery,
+    },
+  });
+});
+
+// ── @DELETE /api/restaurants/:id/photos/:publicId ──────────────────────────
+// Removes a single photo from Cloudinary and from the restaurant's gallery / coverImage.
+// :publicId must be URL-encoded (the slash in Cloudinary IDs becomes %2F).
+exports.deleteRestaurantPhoto = catchAsync(async (req, res, next) => {
+  const restaurant = await Restaurant.findById(req.params.id);
+  if (!restaurant) return next(new AppError('Restaurant not found.', 404));
+  if (req.user.role !== 'admin' && restaurant.owner.toString() !== req.user.id) {
+    return next(new AppError('Not authorized.', 403));
+  }
+
+  // Decode the publicId from the URL param (slashes are encoded as %2F)
+  const publicId = decodeURIComponent(req.params.publicId);
+  if (!publicId) return next(new AppError('publicId is required.', 400));
+
+  let deleted = false;
+
+  // Is it the cover image?
+  if (restaurant.coverImage?.publicId === publicId) {
+    await deleteFromCloudinary(publicId, 'image');
+    restaurant.coverImage = { url: null, publicId: null };
+    deleted = true;
+  } else {
+    // Try gallery
+    const idx = restaurant.gallery.findIndex((g) => g.publicId === publicId);
+    if (idx !== -1) {
+      await deleteFromCloudinary(publicId, 'image');
+      restaurant.gallery.splice(idx, 1);
+      deleted = true;
+    }
+  }
+
+  if (!deleted) return next(new AppError('Photo not found in this restaurant.', 404));
+
+  await restaurant.save({ validateBeforeSave: false });
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Photo deleted successfully.',
+    data: { coverImage: restaurant.coverImage, gallery: restaurant.gallery },
   });
 });

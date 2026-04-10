@@ -92,6 +92,49 @@ const emailTemplates = {
       </div>
     `,
   }),
+
+  otpVerification: (user, otp) => ({
+    subject: 'TableMint – Verify Your Email',
+    html: `
+      <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #fff8f0; border-radius: 16px; overflow: hidden;">
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #2C2416, #6B5B45); padding: 36px 40px; text-align: center;">
+          <div style="font-size: 32px; margin-bottom: 8px;">🍽️</div>
+          <h1 style="color: #fff; font-size: 26px; margin: 0; font-weight: 700; letter-spacing: -0.5px;">
+            Table<span style="color: #D4883A;">Mint</span>
+          </h1>
+          <p style="color: rgba(255,255,255,0.6); font-size: 13px; margin: 6px 0 0;">Email Verification</p>
+        </div>
+
+        <!-- Body -->
+        <div style="padding: 40px;">
+          <h2 style="color: #2C2416; font-size: 22px; margin: 0 0 12px;">Hi ${user.name}, welcome! 👋</h2>
+          <p style="color: #6B5B45; font-size: 15px; line-height: 1.7; margin-bottom: 32px;">
+            You're almost there! Use the verification code below to activate your TableMint account.
+            This code expires in <strong>10 minutes</strong>.
+          </p>
+
+          <!-- OTP Box -->
+          <div style="background: #2C2416; border-radius: 14px; padding: 28px; text-align: center; margin-bottom: 32px;">
+            <p style="color: rgba(255,255,255,0.5); font-size: 12px; text-transform: uppercase; letter-spacing: 2px; margin: 0 0 14px;">Your Verification Code</p>
+            <div style="letter-spacing: 12px; font-size: 42px; font-weight: 800; color: #D4883A; font-family: 'Courier New', monospace;">${otp}</div>
+          </div>
+
+          <p style="color: #A0907A; font-size: 13px; line-height: 1.7; margin-bottom: 8px;">
+            ⚠️ Never share this code with anyone. TableMint will never ask for your OTP.
+          </p>
+          <p style="color: #A0907A; font-size: 13px; line-height: 1.7;">
+            If you did not create an account, you can safely ignore this email.
+          </p>
+        </div>
+
+        <!-- Footer -->
+        <div style="background: #f5ede3; padding: 20px 40px; text-align: center; border-top: 1px solid #E8E0D0;">
+          <p style="color: #A0907A; font-size: 12px; margin: 0;">© ${new Date().getFullYear()} TableMint — Discover Pune's Finest Tables</p>
+        </div>
+      </div>
+    `,
+  }),
 };
 
 module.exports = { sendEmail, emailTemplates };

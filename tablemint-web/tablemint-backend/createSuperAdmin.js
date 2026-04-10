@@ -31,6 +31,7 @@ const createSuperAdmin = async () => {
             password: 'superadmin123',     // Change this after login!
             role: 'superadmin',
             isActive: true,
+            isVerified: true,             // No email OTP needed — created from terminal
             phone: '9876543210'
         });
 

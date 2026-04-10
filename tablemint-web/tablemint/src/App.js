@@ -8,7 +8,9 @@ import RestaurantDetail from './RestaurantDetail';
 import ForRestaurants from './ForRestaurants';
 import LoginPage from './LoginPage';
 import RegisterPage from './RegisterPage';
+import OtpVerifyPage from './OtpVerifyPage';
 import OwnerLoginPage from './OwnerLoginPage';
+import OwnerRegisterPage from './OwnerRegisterPage';
 import Dashboard from './Dashboard';
 import OwnerDashboard from './OwnerDashboard';
 import AccountPage from './AccountPage';
@@ -32,9 +34,11 @@ export default function App() {
                     {/* Customer auth */}
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/register" element={<RegisterPage />} />
+                    <Route path="/verify-otp" element={<OtpVerifyPage />} />
 
                     {/* Owner / Admin auth */}
                     <Route path="/owner/login" element={<OwnerLoginPage />} />
+                    <Route path="/owner/register" element={<OwnerRegisterPage />} />
                     <Route path="/admin/login" element={<OwnerLoginPage />} />
 
                     {/* Super Admin */}

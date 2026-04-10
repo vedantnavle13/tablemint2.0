@@ -51,25 +51,45 @@ const restaurantSchema = new mongoose.Schema(
         owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
         captains: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
         address: {
-            street: { type: String, trim: true },
-            area: { type: String, trim: true },
-            city: { type: String, default: 'Pune', trim: true },
+            street: { type: String, required: [true, 'Street address is required'], trim: true },
+            area: { type: String, required: [true, 'Area / locality is required'], trim: true },
+            city: { type: String, required: [true, 'City is required'], default: 'Pune', trim: true },
             state: { type: String, default: 'Maharashtra', trim: true },
-            pincode: { type: String, trim: true },
+            pincode: { type: String, required: [true, 'Pincode is required'], trim: true },
             country: { type: String, default: 'India', trim: true },
         },
         location: {
             type: { type: String, enum: ['Point'], default: 'Point' },
-            coordinates: { type: [Number], default: [73.8567, 18.5204] },
+            coordinates: {
+                type: [Number],
+                required: [true, 'Restaurant location (latitude & longitude) is required'],
+                validate: {
+                    validator: function(v) {
+                        // Must have exactly 2 elements and not be the [0,0] null-island default
+                        return Array.isArray(v) && v.length === 2 && !(v[0] === 0 && v[1] === 0);
+                    },
+                    message: 'Valid latitude and longitude are required for the restaurant location.',
+                },
+            },
         },
         phone: { type: String, trim: true },
-        email: { type: String, trim: true, lowercase: true },
+        email: { type: String, required: [true, 'Restaurant email is required'], trim: true, lowercase: true },
         website: { type: String, trim: true },
-        images: [{ type: String }],
-        coverImage: { type: String, default: null },
+        // ── Photos (Cloudinary) ──────────────────────────────────────────────────
+        coverImage: {
+            url:      { type: String, default: null },
+            publicId: { type: String, default: null },
+        },
+        gallery: [
+            {
+                url:      { type: String, required: true },
+                publicId: { type: String, required: true },
+            },
+        ],
         priceRange: {
             type: String,
             enum: ['budget', 'moderate', 'expensive', 'luxury'],
+            required: [true, 'Price range is required'],
             default: 'moderate',
         },
         features: [{

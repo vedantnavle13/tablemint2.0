@@ -288,13 +288,26 @@ export default function Explore() {
   const [, setScrolled] = useState(false);
   const [restaurants, setRestaurants] = useState([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [rawRestaurants, setRawRestaurants] = useState([]); // raw API data preserved for remapping
+  // User's location (silently detected on load)
+  const [userLocation, setUserLocation] = useState(null); // { lat, lng }
 
   // Near Me state
   const [viewMode, setViewMode] = useState("all"); // "all" | "nearby"
   const [nearbyLoading, setNearbyLoading] = useState(false);
   const [geoError, setGeoError] = useState("");
 
-  const filters = ["All","Nearby","Instant Book","Top Rated","Pre-Order"];
+  const filters = ["All","Nearby","Instant Book","Top Rated","Pre-Order","Sort by Distance"];
+
+  // Silent background location detect on page load
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => { /* silently fail — user just won't see distances */ },
+      { timeout: 8000 }
+    );
+  }, []);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -320,32 +333,60 @@ export default function Explore() {
     axios.get(`/restaurants?${params.toString()}`)
       .then(res => {
         const raw = res.data.data.restaurants || [];
+        setRawRestaurants(raw);
         setRestaurants(mapRaw(raw));
       })
       .catch(() => setRestaurants([]))
       .finally(() => setLoadingData(false));
   }, [filter, viewMode]);
 
+  // Remap restaurants with fresh distances when userLocation becomes available
+  useEffect(() => {
+    if (!userLocation || rawRestaurants.length === 0) return;
+    setRestaurants(mapRaw(rawRestaurants));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userLocation]);
+
+  // Helper: Haversine distance in km between two lat/lng points
+  function haversineKm(lat1, lng1, lat2, lng2) {
+    const R = 6371;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLng = ((lng2 - lng1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
   // Helper: map raw API restaurant to Card-compatible shape
   function mapRaw(raw, withDist = false) {
-    return raw.map(r => ({
-      id: r._id,
-      name: r.name,
-      cuisine: Array.isArray(r.cuisine) ? r.cuisine.join(" · ") : r.cuisine || "",
-      area: r.address?.area || r.address?.city || "Pune",
-      address: [r.address?.street, r.address?.area, r.address?.city].filter(Boolean).join(", "),
-      rating: r.avgRating || "New",
-      seats: r.totalSeats || 0,
-      price: r.priceRange === "budget" ? "₹" : r.priceRange === "moderate" ? "₹₹" : r.priceRange === "expensive" ? "₹₹₹" : "₹₹₹₹",
-      tag: r.isFeatured ? "Featured" : r.avgRating >= 4.5 ? "Top Rated" : r.instantBookingEnabled ? "Instant Book" : "New",
-      tagColor: r.isFeatured ? "#8B5CF6" : r.avgRating >= 4.5 ? C.amber : r.instantBookingEnabled ? C.green : C.blue,
-      image: r.coverImage || r.images?.[0] || "https://images.unsplash.com/photo-1552566626-52f8b828add9?w=800",
-      hours: r.operatingHours?.[0] ? `${r.operatingHours[0].open} - ${r.operatingHours[0].close}` : "Open Daily",
-      distance: r.address?.area || "Pune",
-      distanceKm: withDist && r.distanceKm !== undefined ? r.distanceKm : undefined,
-      reservationFee: r.reservationFee,
-      instantBookingEnabled: r.instantBookingEnabled,
-    }));
+    return raw.map(r => {
+      // Compute distance from user if location available
+      let computedDistKm;
+      if (userLocation && r.location?.coordinates?.length === 2) {
+        const [rLng, rLat] = r.location.coordinates;
+        computedDistKm = Math.round(haversineKm(userLocation.lat, userLocation.lng, rLat, rLng) * 10) / 10;
+      }
+      return {
+        id: r._id,
+        name: r.name,
+        cuisine: Array.isArray(r.cuisine) ? r.cuisine.join(" · ") : r.cuisine || "",
+        area: r.address?.area || r.address?.city || "Pune",
+        address: [r.address?.street, r.address?.area, r.address?.city].filter(Boolean).join(", "),
+        rating: r.avgRating || "New",
+        seats: r.totalSeats || 0,
+        price: r.priceRange === "budget" ? "₹" : r.priceRange === "moderate" ? "₹₹" : r.priceRange === "expensive" ? "₹₹₹" : "₹₹₹₹",
+        tag: r.isFeatured ? "Featured" : r.avgRating >= 4.5 ? "Top Rated" : r.instantBookingEnabled ? "Instant Book" : "New",
+        tagColor: r.isFeatured ? "#8B5CF6" : r.avgRating >= 4.5 ? C.amber : r.instantBookingEnabled ? C.green : C.blue,
+        image: r.coverImage?.url || r.gallery?.[0]?.url || "https://images.unsplash.com/photo-1552566626-52f8b828add9?w=800",
+        hours: r.operatingHours?.[0] ? `${r.operatingHours[0].open} - ${r.operatingHours[0].close}` : "Open Daily",
+        distance: r.address?.area || "Pune",
+        distanceKm: withDist && r.distanceKm !== undefined ? r.distanceKm : computedDistKm,
+        reservationFee: r.reservationFee,
+        instantBookingEnabled: r.instantBookingEnabled,
+      };
+    });
   }
 
   // Handler: switch to Near Me mode
@@ -388,12 +429,36 @@ export default function Explore() {
     setFilter("All"); // re-trigger the main useEffect
   };
 
-  const shown = restaurants.filter(r =>
-    !search ||
-    r.name.toLowerCase().includes(search.toLowerCase()) ||
-    r.cuisine.toLowerCase().includes(search.toLowerCase()) ||
-    r.area.toLowerCase().includes(search.toLowerCase())
-  );
+  const shown = restaurants
+    .filter(r =>
+      !search ||
+      r.name.toLowerCase().includes(search.toLowerCase()) ||
+      r.cuisine.toLowerCase().includes(search.toLowerCase()) ||
+      r.area.toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) => {
+      if (filter === "Sort by Distance" || viewMode === "nearby") {
+        // Push restaurants without location data to the end
+        if (a.distanceKm === undefined && b.distanceKm === undefined) return 0;
+        if (a.distanceKm === undefined) return 1;
+        if (b.distanceKm === undefined) return -1;
+        return a.distanceKm - b.distanceKm;
+      }
+      return 0; // preserve API order for other filters
+    });
+
+  // When "Sort by Distance" is selected, request location if we don't have it yet
+  const handleFilterChange = (f) => {
+    setFilter(f);
+    if (f === "Sort by Distance" && !userLocation && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        () => setGeoError("Location access denied. Distances may not be available."),
+        { timeout: 8000 }
+      );
+    }
+  };
+
 
   const isLoadingAny = loadingData || nearbyLoading;
 
@@ -658,7 +723,13 @@ export default function Explore() {
               letterSpacing: 2.5, textTransform: "uppercase",
               fontFamily: "'DM Sans', sans-serif", marginBottom: 6,
             }}>
-              {viewMode === "nearby" ? "📡 Sorted by distance" : "📍 Near You · Pune"}
+              {viewMode === "nearby"
+                ? "📡 Sorted by distance"
+                : filter === "Sort by Distance" && userLocation
+                  ? "📍 Sorted by distance from your location"
+                  : filter === "Sort by Distance" && !userLocation
+                    ? "⏳ Requesting your location to sort by distance…"
+                    : "📍 Near You · Pune"}
             </p>
             <h2 style={{
               fontFamily: "'Playfair Display', serif",
@@ -732,7 +803,7 @@ export default function Explore() {
         <div style={{ display: "flex", gap: 8, marginBottom: 26, flexWrap: "wrap" }}>
           {/* Hide standard filters when in Near Me mode */}
           {viewMode === "all" && filters.map(f => (
-            <button key={f} onClick={() => setFilter(f)} style={{
+            <button key={f} onClick={() => handleFilterChange(f)} style={{
               background: filter === f ? C.amber : "#fff",
               border: `1.5px solid ${filter === f ? C.amber : C.border}`,
               color: filter === f ? "#fff" : C.textMid,

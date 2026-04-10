@@ -36,8 +36,8 @@ export default function RegisterPage() {
 
         setLoading(true);
         try {
-            await register({ name, email, phone, password, role: "customer" });
-            navigate("/explore", { replace: true });
+            const data = await register({ name, email, phone, password, role: "customer" });
+            navigate(`/verify-otp?email=${encodeURIComponent(data.email)}`, { replace: true });
         } catch (err) {
             setError(err.response?.data?.message || "Registration failed. Please try again.");
         } finally {

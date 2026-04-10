@@ -31,6 +31,38 @@ export default function RestaurantDetail() {
   const [bookingSuccess, setBookingSuccess] = useState(null);
   const [bookingError, setBookingError] = useState("");
 
+  // ── User location + distance ──────────────────────────────────────────────
+  const [userLocation, setUserLocation] = useState(null);   // { lat, lng }
+  const [distanceKm, setDistanceKm] = useState(null);       // number | null
+  const [geoStatus, setGeoStatus] = useState("idle");       // "idle" | "loading" | "ok" | "denied"
+
+  // Haversine formula (straight-line km between two lat/lng points)
+  const haversineKm = (lat1, lng1, lat2, lng2) => {
+    const R = 6371;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLng = ((lng2 - lng1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  };
+
+  // Silently detect user location on mount
+  useEffect(() => {
+    if (!navigator.geolocation) { setGeoStatus("denied"); return; }
+    setGeoStatus("loading");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setGeoStatus("ok");
+      },
+      () => setGeoStatus("denied"),
+      { timeout: 8000 }
+    );
+  }, []);
+
   const getTodayDate = () => {
     const today = new Date();
     return today.toISOString().split('T')[0];
@@ -41,6 +73,15 @@ export default function RestaurantDetail() {
     axios.get(`/restaurants/${id}`)
       .then(res => {
         const r = res.data.data.restaurant;
+        // Build image array: cover first, then gallery
+        const coverUrl = r.coverImage?.url || null;
+        const galleryUrls = (r.gallery || []).map(g => g.url).filter(Boolean);
+        const allImages = [
+          ...(coverUrl ? [coverUrl] : []),
+          ...galleryUrls,
+        ];
+        if (allImages.length === 0) allImages.push('https://images.unsplash.com/photo-1552566626-52f8b828add9?w=800');
+
         setRestaurant({
           ...r,
           id: r._id,
@@ -49,7 +90,11 @@ export default function RestaurantDetail() {
           rating: r.avgRating || 0,
           totalReviews: r.totalReviews || 0,
           hours: r.operatingHours?.[0] ? `${r.operatingHours[0].open} - ${r.operatingHours[0].close}` : 'Open Daily',
-          images: r.images?.length ? r.images : r.coverImage ? [r.coverImage] : ['https://images.unsplash.com/photo-1552566626-52f8b828add9?w=800'],
+          images: allImages,
+          galleryImages: galleryUrls,
+          // Store GeoJSON coordinates for distance + Maps link
+          lat: r.location?.coordinates?.[1] ?? null,
+          lng: r.location?.coordinates?.[0] ?? null,
           menu: (r.menu || []).map(item => ({
             id: item._id,
             name: item.name,
@@ -68,6 +113,14 @@ export default function RestaurantDetail() {
       .catch(() => setRestaurant(null))
       .finally(() => setLoadingRestaurant(false));
   }, [id]);
+
+  // Recompute distance whenever userLocation or restaurant changes
+  useEffect(() => {
+    if (!userLocation || !restaurant?.lat || !restaurant?.lng) return;
+    const km = haversineKm(userLocation.lat, userLocation.lng, restaurant.lat, restaurant.lng);
+    setDistanceKm(Math.round(km * 10) / 10);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userLocation, restaurant]);
 
   const [bookingMode, setBookingMode] = useState("instant");
   const [selectedDate, setSelectedDate] = useState(getTodayDate());
@@ -184,6 +237,7 @@ export default function RestaurantDetail() {
         * { box-sizing:border-box; margin:0; padding:0; }
         ::-webkit-scrollbar { width:8px; }
         ::-webkit-scrollbar-thumb { background:#D4C4B0; border-radius:4px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
 
       <Navbar style={{
@@ -251,8 +305,8 @@ export default function RestaurantDetail() {
               </div>
               <div style={{ display: "flex", gap: 16, marginBottom: 20, flexWrap: "wrap" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <span>📍</span>
-                  <span style={{ fontSize: 14, color: C.textMuted }}>{restaurant.distance} away</span>
+                  <span>📅</span>
+                  <span style={{ fontSize: 14, color: C.textMuted }}>{restaurant.area}</span>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span>🕐</span>
@@ -263,6 +317,53 @@ export default function RestaurantDetail() {
                   <span style={{ fontSize: 14, color: C.textMuted }}>{restaurant.phone}</span>
                 </div>
               </div>
+
+              {/* Distance from user + Google Maps link */}
+              <div style={{ display:"flex", flexWrap:"wrap", gap:10, marginBottom:16, alignItems:"center" }}>
+                {/* Distance badge */}
+                {geoStatus === "loading" && (
+                  <div style={{ display:"flex", alignItems:"center", gap:6,
+                    padding:"6px 14px", borderRadius:20,
+                    background:C.bgSoft, border:`1px solid ${C.border}`,
+                    fontSize:13, color:C.textMuted, fontWeight:600 }}>
+                    <span style={{ display:"inline-block", width:10, height:10,
+                      border:`2px solid ${C.border}`, borderTopColor:C.amber,
+                      borderRadius:"50%", animation:"spin 0.7s linear infinite" }} />
+                    Detecting your location…
+                  </div>
+                )}
+                {distanceKm !== null && (
+                  <div style={{
+                    display:"inline-flex", alignItems:"center", gap:6,
+                    padding:"6px 14px", borderRadius:20,
+                    background:C.green+"15", border:`1.5px solid ${C.green}40`,
+                    fontSize:13, color:C.green, fontWeight:700,
+                  }}>
+                    📍 {distanceKm} km away from you
+                  </div>
+                )}
+
+                {/* Google Maps link */}
+                {restaurant.lat && restaurant.lng && (
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${restaurant.lat},${restaurant.lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display:"inline-flex", alignItems:"center", gap:6,
+                      padding:"6px 14px", borderRadius:20,
+                      background:"#EAF4FF", border:"1.5px solid #1a73e840",
+                      fontSize:13, color:"#1a73e8", fontWeight:600,
+                      textDecoration:"none", transition:"all 0.2s",
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background="#dbeafe"}
+                    onMouseLeave={e => e.currentTarget.style.background="#EAF4FF"}
+                  >
+                    🗺️ View on Google Maps
+                  </a>
+                )}
+              </div>
+
               <p style={{ fontSize: 14, color: C.textMuted, lineHeight: 1.6 }}>📍 {restaurant.address}</p>
 
               {/* Share to Group button */}
@@ -310,6 +411,46 @@ export default function RestaurantDetail() {
                 </div>
               </div>
             </div>
+
+            {/* GALLERY GRID */}
+            {restaurant.galleryImages?.length > 0 && (
+              <div style={{
+                background: C.bgCard, padding: 24, borderRadius: 16,
+                border: `1px solid ${C.border}`, marginBottom: 32,
+              }}>
+                <h3 style={{
+                  fontFamily: "'Playfair Display', serif",
+                  fontSize: 22, fontWeight: 700, color: C.text, marginBottom: 16,
+                }}>📸 Photo Gallery</h3>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                  gap: 10,
+                }}>
+                  {restaurant.galleryImages.map((url, idx) => (
+                    <div key={idx} style={{
+                      height: 150,
+                      borderRadius: 12,
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      border: `1.5px solid ${C.border}`,
+                      transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                    }}
+                      onClick={() => setCurrentImage(restaurant.images.indexOf(url) !== -1 ? restaurant.images.indexOf(url) : 0)}
+                      onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.03)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none'; }}
+                    >
+                      <img
+                        src={url}
+                        alt={`${restaurant.name} gallery ${idx + 1}`}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                        onError={e => { e.target.src = 'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=400'; }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* BEAUTIFUL PRE-ORDER BOX */}
             <div style={{

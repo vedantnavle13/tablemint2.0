@@ -23,6 +23,9 @@ const userSchema = new mongoose.Schema(
     restaurants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Restaurant' }],
     avatar:   { type: String, default: null },
     isActive: { type: Boolean, default: true },
+    isVerified: { type: Boolean, default: false },
+    otp: { type: String, select: false },
+    otpExpires: { type: Date, select: false },
     passwordResetToken: String,
     passwordResetExpires: Date,
     tokenVersion: { type: Number, default: 0 },
@@ -82,6 +85,7 @@ userSchema.methods.toPublicJSON = function () {
     assignedRestaurant: this.assignedRestaurant,
     restaurants: this.restaurants,
     isActive: this.isActive,
+    isVerified: this.isVerified,
     createdAt: this.createdAt,
   };
 };

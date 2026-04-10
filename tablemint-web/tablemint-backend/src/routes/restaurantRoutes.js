@@ -4,6 +4,7 @@ const rc = require('../controllers/restaurantController');
 const reviewController = require('../controllers/reviewController');
 const { protect, restrictTo } = require('../middleware/auth');
 const { validate, schemas } = require('../middleware/validate');
+const { restaurantPhotosUpload, handleMulterError } = require('../middleware/upload');
 
 // ─── Public routes ─────────────────────────────────────────────────────────
 router.get('/', rc.getAllRestaurants);
@@ -48,5 +49,21 @@ router.post('/:id/verify',         restrictTo('admin'),          rc.verifyRestau
 router.post('/:id/regenerate-otp', restrictTo('admin', 'owner'), rc.regenerateOtp);
 router.get('/:id/my-otp',          restrictTo('owner'), rc.getRestaurantOtp);
 router.post('/:id/create-admin',   restrictTo('admin', 'owner'), rc.createRestaurantAdmin);
+
+// ── Photo upload / management ─────────────────────────────────────────────────
+// POST  /api/restaurants/:id/photos            — upload 1-10 images
+// DELETE /api/restaurants/:id/photos/:publicId  — remove one photo (publicId URL-encoded)
+router.post(
+  '/:id/photos',
+  restrictTo('admin', 'owner'),
+  restaurantPhotosUpload,
+  handleMulterError,
+  rc.uploadRestaurantPhotos
+);
+router.delete(
+  '/:id/photos/:publicId',
+  restrictTo('admin', 'owner'),
+  rc.deleteRestaurantPhoto
+);
 
 module.exports = router;
