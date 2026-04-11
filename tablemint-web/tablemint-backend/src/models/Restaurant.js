@@ -48,6 +48,14 @@ const restaurantSchema = new mongoose.Schema(
         slug: { type: String, unique: true, lowercase: true },
         description: { type: String, trim: true, maxlength: [1000, 'Description cannot exceed 1000 characters'] },
         cuisine: [{ type: String, trim: true }],
+
+        // ─── Recommendation fields ─────────────────────────────────────────
+        /**
+         * Normalised cuisine list used for recommendation matching.
+         * Separate from legacy `cuisine` to avoid breaking existing queries.
+         * e.g. ['North Indian', 'Mughlai', 'Biryani']
+         */
+        cuisines: [{ type: String, trim: true }],
         owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
         captains: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
         address: {
@@ -88,20 +96,34 @@ const restaurantSchema = new mongoose.Schema(
         ],
         priceRange: {
             type: String,
-            enum: ['budget', 'moderate', 'expensive', 'luxury'],
+            /**
+             * Dual enum: legacy text values kept for backward compat;
+             * new rupee-symbol values added for recommendation matching
+             * against User.preferredPriceRange.
+             */
+            enum: ['budget', 'moderate', 'expensive', 'luxury', '₹', '₹₹', '₹₹₹', '₹₹₹₹', 'Up to ₹500', '₹500 - ₹1000', 'Up to ₹1000', '₹1000 - ₹2000', '₹2000 - ₹3000', '₹2000+', '₹3000+'],
             required: [true, 'Price range is required'],
             default: 'moderate',
         },
-        features: [{
-            type: String,
-            enum: ['Live Music', 'Outdoor Seating', 'Private Dining Room', 'Bar Available',
-                'Valet Parking', 'WiFi', 'Rooftop', 'Pet Friendly', 'Wheelchair Accessible'],
-        }],
+        features: [{ type: String, trim: true }],
         dietaryOptions: [{
             type: String,
             enum: ['Vegetarian', 'Vegan Options', 'Gluten-Free Available', 'Halal', 'Jain'],
         }],
         specialties: [{ type: String, trim: true }],
+
+        /**
+         * Ambience descriptors for content-based filtering.
+         * e.g. ['romantic', 'casual', 'vibrant', 'quiet', 'business']
+         */
+        ambience: [{ type: String, trim: true, lowercase: true }],
+
+        /**
+         * Profile completion percentage (0–100) for the restaurant listing.
+         * Starts at 30 (basic details always present); grows as owner enriches
+         * cuisines, ambience, features, menu items, operating hours, etc.
+         */
+        profileCompletedPercentage: { type: Number, default: 30, min: 0, max: 100 },
         operatingHours: [operatingHoursSchema],
         tables: [tableSchema],
         menu: [menuItemSchema],

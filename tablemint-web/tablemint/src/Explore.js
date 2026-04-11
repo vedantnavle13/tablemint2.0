@@ -376,7 +376,7 @@ export default function Explore() {
         address: [r.address?.street, r.address?.area, r.address?.city].filter(Boolean).join(", "),
         rating: r.avgRating || "New",
         seats: r.totalSeats || 0,
-        price: r.priceRange === "budget" ? "₹" : r.priceRange === "moderate" ? "₹₹" : r.priceRange === "expensive" ? "₹₹₹" : "₹₹₹₹",
+        price: r.priceRange === "budget" ? "Up to ₹1000" : r.priceRange === "moderate" ? "₹1000 - ₹2000" : r.priceRange === "expensive" ? "₹2000 - ₹3000" : "₹3000+",
         tag: r.isFeatured ? "Featured" : r.avgRating >= 4.5 ? "Top Rated" : r.instantBookingEnabled ? "Instant Book" : "New",
         tagColor: r.isFeatured ? "#8B5CF6" : r.avgRating >= 4.5 ? C.amber : r.instantBookingEnabled ? C.green : C.blue,
         image: r.coverImage?.url || r.gallery?.[0]?.url || "https://images.unsplash.com/photo-1552566626-52f8b828add9?w=800",

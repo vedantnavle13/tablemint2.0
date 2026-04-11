@@ -407,10 +407,10 @@ function AddRestaurantForm({ onSuccess }) {
                     fontSize: 14, color: C.text, fontFamily: "'DM Sans',sans-serif", outline: "none"
                   }}>
                   <option value="">-- Select Price Range --</option>
-                  <option value="budget">Budget (₹)</option>
-                  <option value="moderate">Moderate (₹₹)</option>
-                  <option value="expensive">Expensive (₹₹₹)</option>
-                  <option value="luxury">Luxury (₹₹₹₹)</option>
+                  <option value="budget">Budget (Up to ₹1000)</option>
+                  <option value="moderate">Moderate (₹1000-₹2000)</option>
+                  <option value="expensive">Expensive (₹2000-₹3000)</option>
+                  <option value="luxury">Luxury (₹3000+)</option>
                 </select>
                 {showValidation && !form.priceRange && <p style={{ fontSize: 11, color: C.red, marginTop: 4 }}>Price range is required</p>}
               </div>
@@ -921,10 +921,10 @@ function InfoTab({ restaurant }) {
             <label style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Price Range</label>
             <select value={form.priceRange} onChange={e => f("priceRange")(e.target.value)}
               style={{ ...inp }}>
-              <option value="budget">Budget (₹)</option>
-              <option value="moderate">Moderate (₹₹)</option>
-              <option value="expensive">Expensive (₹₹₹)</option>
-              <option value="luxury">Luxury (₹₹₹₹)</option>
+              <option value="budget">Budget (Up to ₹1000)</option>
+              <option value="moderate">Moderate (₹1000-₹2000)</option>
+              <option value="expensive">Expensive (₹2000-₹3000)</option>
+              <option value="luxury">Luxury (₹3000+)</option>
             </select>
           </div>
           {/* Reservation Fee */}
@@ -957,7 +957,7 @@ function InfoTab({ restaurant }) {
             { label: "Email", value: form.email || "—" },
             { label: "Address", value: [form.address.street, form.address.area, form.address.city].filter(Boolean).join(", ") || "—" },
             { label: "Pincode", value: form.address.pincode || "—" },
-            { label: "Price Range", value: { budget: "Budget (₹)", moderate: "Moderate (₹₹)", expensive: "Expensive (₹₹₹)", luxury: "Luxury (₹₹₹₹)" }[form.priceRange] || form.priceRange },
+            { label: "Price Range", value: { budget: "Budget (Up to ₹1000)", moderate: "Moderate (₹1000-₹2000)", expensive: "Expensive (₹2000-₹3000)", luxury: "Luxury (₹3000+)" }[form.priceRange] || form.priceRange },
             { label: "Reservation Fee", value: `₹${form.reservationFee ?? 0}` },
             { label: "Instant Booking", value: form.instantBookingEnabled ? "✅ Enabled" : "❌ Disabled" },
             { label: "Avg Rating", value: restaurant.avgRating ? `${restaurant.avgRating}★` : "No ratings yet" },

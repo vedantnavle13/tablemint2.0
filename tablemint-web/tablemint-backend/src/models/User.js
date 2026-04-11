@@ -30,6 +30,39 @@ const userSchema = new mongoose.Schema(
     passwordResetExpires: Date,
     tokenVersion: { type: Number, default: 0 },
     lastLogin: Date,
+
+    // ─── Recommendation / Personalisation fields ──────────────────────────────
+    /** Cuisine types the user prefers. e.g. ['Italian', 'South Indian'] */
+    preferredCuisines: [{ type: String, trim: true }],
+
+    preferredPriceRange: {
+      type: String,
+      enum: ['Up to ₹500', '₹500 - ₹1000', 'Up to ₹1000', '₹1000 - ₹2000', '₹2000 - ₹3000', '₹2000+', '₹3000+'],
+    },
+
+    /** Dietary filters. e.g. ['Veg', 'Jain', 'Eggetarian'] */
+    dietaryPreferences: [{ type: String, trim: true }],
+
+    /** User's home city — used for geo-aware recommendations */
+    city: { type: String, trim: true },
+
+    /** Optional precise coordinates for distance-based ranking */
+    location: {
+      lat: { type: Number },
+      lng: { type: Number },
+    },
+
+    /**
+     * Percentage (0–100) auto-calculated by calculateProfileCompletion().
+     * Updated whenever the user edits their profile preferences.
+     */
+    profileCompletedPercentage: { type: Number, default: 0, min: 0, max: 100 },
+
+    /**
+     * Which onboarding steps the user has completed.
+     * e.g. ['preferredCuisines', 'city', 'dietaryPreferences']
+     */
+    completedProfileSteps: [{ type: String }],
   },
   { timestamps: true }
 );
@@ -88,6 +121,14 @@ userSchema.methods.toPublicJSON = function () {
     isActive: this.isActive,
     isVerified: this.isVerified,
     createdAt: this.createdAt,
+    // Recommendation / personalisation
+    preferredCuisines: this.preferredCuisines,
+    preferredPriceRange: this.preferredPriceRange,
+    dietaryPreferences: this.dietaryPreferences,
+    city: this.city,
+    location: this.location,
+    profileCompletedPercentage: this.profileCompletedPercentage,
+    completedProfileSteps: this.completedProfileSteps,
   };
 };
 

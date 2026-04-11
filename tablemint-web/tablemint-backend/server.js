@@ -11,6 +11,11 @@ const mongoSanitize = require('express-mongo-sanitize');
 const path = require('path');
 require('dotenv').config();
 
+// ─── Pre-register models so MongoDB collections & indexes are created on
+//     first connection — especially important for models not referenced by
+//     any route (e.g. Interaction, which is populated via Interaction.log()).
+require('./src/models/Interaction');
+
 const app = express();
 const httpServer = http.createServer(app); // ← wrap Express in http server
 

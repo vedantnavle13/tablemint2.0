@@ -3,7 +3,7 @@ const router = express.Router();
 
 const {
   register, sendOTP, verifyOTP, login, logout, getMe,
-  forgotPassword, resetPassword, updateProfile, changePassword,
+  forgotPassword, resetPassword, updateProfile, updatePreferences, changePassword,
   createAdmin,
 } = require('../controllers/authController');
 
@@ -27,6 +27,7 @@ router.patch('/reset-password/:token',   validate(schemas.resetPasswordSchema), 
 
 router.get('/me',                         protect,                                          getMe);
 router.patch('/update-profile',           protect, validate(schemas.updateProfileSchema),   updateProfile);
+router.patch('/update-preferences',       protect,                                          updatePreferences);
 router.patch('/change-password',          protect, validate(schemas.changePasswordSchema),  changePassword);
 
 // ── Admin creation (superadmin only) ─────────────────────────────────────────

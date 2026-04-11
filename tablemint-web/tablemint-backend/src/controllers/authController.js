@@ -5,6 +5,7 @@ const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
 const { sendEmail, emailTemplates } = require('../utils/email');
 const logger = require('../utils/logger');
+const { calculateProfileCompletion } = require('../utils/profileCompletion');
 
 // ─── Password complexity validator ──────────────────────────────────────────
 // At least 8 chars, 1 uppercase, 1 lowercase, 1 digit
@@ -209,14 +210,61 @@ exports.getMe = catchAsync(async (req, res, next) => {
 });
 
 // ─── @PATCH /api/auth/update-profile ────────────────────────────────────────
+// Updates basic profile fields and recalculates completion percentage.
 exports.updateProfile = catchAsync(async (req, res, next) => {
   const { name, phone } = req.body;
-  const user = await User.findByIdAndUpdate(
-    req.user.id,
-    { name, phone },
-    { new: true, runValidators: true }
-  );
+  const user = await User.findById(req.user.id);
+  if (!user) return next(new AppError('User not found.', 404));
+
+  if (name  !== undefined) user.name  = name;
+  if (phone !== undefined) user.phone = phone;
+
+  // Recalculate completion — phone carries a 5% weight
+  const { percentage, completedSteps } = calculateProfileCompletion(user);
+  user.profileCompletedPercentage = percentage;
+  user.completedProfileSteps      = completedSteps;
+
+  await user.save({ validateBeforeSave: true });
   res.status(200).json({ status: 'success', data: { user: user.toPublicJSON() } });
+});
+
+// ─── @PATCH /api/auth/update-preferences ────────────────────────────────────
+// Updates recommendation / personalisation fields for the logged-in customer.
+// Automatically recalculates profileCompletedPercentage after each update.
+exports.updatePreferences = catchAsync(async (req, res, next) => {
+  const {
+    preferredCuisines,
+    preferredPriceRange,
+    dietaryPreferences,
+    city,
+    location,          // expects { lat: Number, lng: Number }
+  } = req.body;
+
+  const user = await User.findById(req.user.id);
+  if (!user) return next(new AppError('User not found.', 404));
+
+  // Only patch fields that were explicitly sent
+  if (preferredCuisines   !== undefined) user.preferredCuisines   = preferredCuisines;
+  if (preferredPriceRange  !== undefined) user.preferredPriceRange  = preferredPriceRange;
+  if (dietaryPreferences   !== undefined) user.dietaryPreferences   = dietaryPreferences;
+  if (city                !== undefined) user.city                = city;
+  if (location            !== undefined) user.location            = location;
+
+  // Auto-recalculate profile completion
+  const { percentage, completedSteps, missingSteps } = calculateProfileCompletion(user);
+  user.profileCompletedPercentage = percentage;
+  user.completedProfileSteps      = completedSteps;
+
+  await user.save({ validateBeforeSave: true });
+
+  res.status(200).json({
+    status: 'success',
+    message: 'Preferences updated successfully.',
+    data: {
+      user: user.toPublicJSON(),
+      profileCompletion: { percentage, completedSteps, missingSteps },
+    },
+  });
 });
 
 // ─── @PATCH /api/auth/change-password ───────────────────────────────────────

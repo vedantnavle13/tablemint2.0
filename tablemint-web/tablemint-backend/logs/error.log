@@ -199,3 +199,11 @@
 {"level":"error","message":"404 - Route /api/api/reservations/my not found. - /api/api/reservations/my","timestamp":"2026-04-11 10:09:55"}
 {"level":"error","message":"404 - Route /api/api/reservations/my?limit=1 not found. - /api/api/reservations/my?limit=1","timestamp":"2026-04-11 10:09:55"}
 {"level":"error","message":"404 - Route /api/api/reservations/my not found. - /api/api/reservations/my","timestamp":"2026-04-11 10:11:56"}
+{"level":"error","message":"400 - Phone number must be exactly 10 digits (Indian format). - /api/auth/update-profile","timestamp":"2026-04-11 13:14:42"}
+{"level":"error","message":"500 - User validation failed: preferredPriceRange: `₹500 - ₹1000` is not a valid enum value for path `preferredPriceRange`. - /api/auth/update-preferences","timestamp":"2026-04-11 18:43:36"}
+{"level":"error","message":"500 - User validation failed: preferredPriceRange: `₹2000+` is not a valid enum value for path `preferredPriceRange`. - /api/auth/update-preferences","timestamp":"2026-04-11 18:43:46"}
+{"level":"error","message":"500 - User validation failed: preferredPriceRange: `Up to ₹500` is not a valid enum value for path `preferredPriceRange`. - /api/auth/update-preferences","timestamp":"2026-04-11 18:43:49"}
+{"level":"error","message":"500 - User validation failed: preferredPriceRange: `Up to ₹500` is not a valid enum value for path `preferredPriceRange`. - /api/auth/update-preferences","timestamp":"2026-04-11 18:44:31"}
+{"level":"error","message":"500 - User validation failed: preferredPriceRange: `Up to ₹1000` is not a valid enum value for path `preferredPriceRange`. - /api/auth/update-preferences","timestamp":"2026-04-11 18:48:19"}
+{"level":"error","message":"500 - User validation failed: preferredPriceRange: `₹3000+` is not a valid enum value for path `preferredPriceRange`. - /api/auth/update-preferences","timestamp":"2026-04-11 18:48:29"}
+{"level":"error","message":"500 - User validation failed: preferredPriceRange: `₹1000 - ₹2000` is not a valid enum value for path `preferredPriceRange`. - /api/auth/update-preferences","timestamp":"2026-04-11 18:59:57"}

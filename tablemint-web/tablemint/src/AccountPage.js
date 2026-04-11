@@ -244,6 +244,220 @@ function ProfileTab({ user }) {
   );
 }
 
+// ─── Preferences Tab ──────────────────────────────────────────────────────────
+function PreferencesTab({ user }) {
+  const { setUser } = useAuth(); // to refresh user state after updating
+  const [editing, setEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg]         = useState("");
+  const [error, setError]     = useState("");
+
+  const [city, setCity] = useState(user?.city || "");
+  const [priceRange, setPriceRange] = useState(user?.preferredPriceRange || "");
+  const [cuisines, setCuisines] = useState(user?.preferredCuisines || []);
+  const [dietary, setDietary] = useState(user?.dietaryPreferences || []);
+
+  const ALL_CUISINES = ["North Indian", "South Indian", "Chinese", "Italian", "Mexican", "Continental", "Japanese", "Healthy", "Desserts"];
+  const ALL_DIETARY = ["Vegetarian", "Non-Vegetarian", "Vegan", "Jain", "Eggetarian", "Halal"];
+  const PRICE_RANGES = ["Up to ₹1000", "₹1000 - ₹2000", "₹2000 - ₹3000", "₹3000+"];
+
+  const toggleArray = (arr, setter, val) => {
+    setter(arr.includes(val) ? arr.filter(x => x !== val) : [...arr, val]);
+  };
+
+  const savePreferences = async () => {
+    setLoading(true); setError(""); setMsg("");
+    try {
+      const res = await axios.patch("/auth/update-preferences", {
+        city,
+        preferredPriceRange: priceRange,
+        preferredCuisines: cuisines,
+        dietaryPreferences: dietary,
+      });
+      const updatedUser = res.data.data.user;
+      if (setUser) {
+         setUser(updatedUser);
+         localStorage.setItem("user", JSON.stringify(updatedUser));
+      }
+      setMsg("Preferences saved! Your recommendations will be updated.");
+      setEditing(false);
+      setTimeout(() => setMsg(""), 3000);
+    } catch (e) {
+      setError(e.response?.data?.message || "Failed to update preferences.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const inp = {
+    width: "100%", padding: "11px 14px", borderRadius: 10, border: `1.5px solid ${C.border}`,
+    fontSize: 14, color: C.text, fontFamily: "'DM Sans',sans-serif", outline: "none", background: "#fff",
+  };
+
+  const Pct = user?.profileCompletedPercentage || 0;
+
+  return (
+    <div style={{ maxWidth: 800, margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }}>
+      {/* Progress Card */}
+      <div style={{ background: C.bgCard, borderRadius: 16, border: `1px solid ${C.border}`, padding: "24px 28px", display: "flex", alignItems: "center", gap: 24 }}>
+        <div style={{ position: "relative", width: 80, height: 80, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <svg width="80" height="80" viewBox="0 0 100 100" style={{ transform: "rotate(-90deg)" }}>
+            <circle cx="50" cy="50" r="40" fill="none" stroke={C.border} strokeWidth="8" />
+            <circle cx="50" cy="50" r="40" fill="none" stroke={C.amber} strokeWidth="8" 
+              strokeDasharray="251.2" strokeDashoffset={251.2 - (251.2 * Pct) / 100} 
+              strokeLinecap="round" style={{ transition: "stroke-dashoffset 1s ease-in-out" }} />
+          </svg>
+          <div style={{ position: "absolute", fontSize: 18, fontWeight: 700, color: C.text, fontFamily: "'Playfair Display',serif" }}>
+            {Pct}%
+          </div>
+        </div>
+        <div style={{ flex: 1 }}>
+          <h3 style={{ fontSize: 18, fontWeight: 700, color: C.text, marginBottom: 4 }}>Profile Completion</h3>
+          <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.5 }}>
+            {Pct === 100 
+              ? "Your profile is fully complete! You'll receive the best personalized recommendations." 
+              : "Complete your dining preferences to get better restaurant recommendations tailored just for you."}
+          </p>
+        </div>
+      </div>
+
+      <div style={{ background: C.bgCard, borderRadius: 16, border: `1px solid ${C.border}`, padding: 28 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+          <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 700, color: C.text }}>Dining Preferences</h3>
+          {!editing && (
+            <button onClick={() => setEditing(true)}
+              style={{
+                padding: "7px 16px", background: C.amberSoft, border: `1px solid ${C.amber}40`,
+                borderRadius: 8, fontSize: 13, fontWeight: 600, color: C.amber, cursor: "pointer", fontFamily: "'DM Sans',sans-serif",
+              }}>
+              Edit
+            </button>
+          )}
+        </div>
+
+        {msg   && <div style={{ padding: "10px 14px", background: C.green + "15", borderRadius: 8, fontSize: 13, color: C.green, marginBottom: 16 }}>{msg}</div>}
+        {error && <div style={{ padding: "10px 14px", background: C.red + "15", borderRadius: 8, fontSize: 13, color: C.red, marginBottom: 16 }}>⚠️ {error}</div>}
+
+        {editing ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+            {/* City */}
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 700, color: C.textMid, display: "block", marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>Your City</label>
+              <input type="text" placeholder="e.g. Pune, Mumbai" value={city} onChange={e => setCity(e.target.value)} style={inp}
+                onFocus={e => (e.target.style.borderColor = C.amber)} onBlur={e => (e.target.style.borderColor = C.border)} />
+            </div>
+
+            {/* Price Range */}
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 700, color: C.textMid, display: "block", marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>Preferred Price Range</label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {PRICE_RANGES.map(pr => (
+                  <button key={pr} onClick={() => setPriceRange(pr)}
+                    style={{
+                      padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer",
+                      border: priceRange === pr ? `1.5px solid ${C.amber}` : `1.5px solid ${C.border}`,
+                      background: priceRange === pr ? C.amberSoft : "transparent",
+                      color: priceRange === pr ? C.amber : C.textMuted,
+                      transition: "all 0.2s"
+                    }}>
+                    {pr}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Dietary */}
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 700, color: C.textMid, display: "block", marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>Dietary Preferences</label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {ALL_DIETARY.map(item => {
+                  const active = dietary.includes(item);
+                  return (
+                    <button key={item} onClick={() => toggleArray(dietary, setDietary, item)}
+                      style={{
+                        padding: "7px 14px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer",
+                        border: active ? `1px solid ${C.green}` : `1px solid ${C.border}`,
+                        background: active ? C.green + "15" : "transparent",
+                        color: active ? C.green : C.textMid, transition: "all 0.15s"
+                      }}>
+                      {active ? "✓ " : ""}{item}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Cuisines */}
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 700, color: C.textMid, display: "block", marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>Favorite Cuisines</label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {ALL_CUISINES.map(item => {
+                  const active = cuisines.includes(item);
+                  return (
+                    <button key={item} onClick={() => toggleArray(cuisines, setCuisines, item)}
+                      style={{
+                        padding: "7px 14px", borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: "pointer",
+                        border: active ? `1px solid ${C.amber}` : `1px solid ${C.border}`,
+                        background: active ? C.amberSoft : "transparent",
+                        color: active ? C.amber : C.textMid, transition: "all 0.15s"
+                      }}>
+                      {active ? "✓ " : ""}{item}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+              <button onClick={savePreferences} disabled={loading}
+                style={{ flex: 1, padding: "12px", background: C.amber, border: "none", borderRadius: 10, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans',sans-serif" }}>
+                {loading ? "Saving…" : "Save Preferences"}
+              </button>
+              <button onClick={() => { 
+                setEditing(false); setCity(user?.city || ""); setPriceRange(user?.preferredPriceRange || ""); 
+                setCuisines(user?.preferredCuisines || []); setDietary(user?.dietaryPreferences || []);
+              }}
+                style={{ padding: "12px 20px", background: "transparent", border: `1.5px solid ${C.border}`, borderRadius: 10, color: C.textMid, fontSize: 14, cursor: "pointer", fontFamily: "'DM Sans',sans-serif" }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <span style={{ fontSize: 12, color: C.textMuted, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Your City</span>
+              <span style={{ fontSize: 15, fontWeight: 600, color: user?.city ? C.text : C.border }}>{user?.city || "Not set"}</span>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <span style={{ fontSize: 12, color: C.textMuted, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Preferred Price Range</span>
+              <span style={{ fontSize: 18, fontWeight: 700, color: user?.preferredPriceRange ? C.amber : C.border }}>{user?.preferredPriceRange || "Not set"}</span>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <span style={{ fontSize: 12, color: C.textMuted, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Dietary Preferences</span>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {user?.dietaryPreferences?.length > 0 ? user.dietaryPreferences.map(d => (
+                  <Badge key={d} label={d} color={C.green} />
+                )) : <span style={{ fontSize: 14, color: C.border, fontWeight: 600 }}>Not set</span>}
+              </div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <span style={{ fontSize: 12, color: C.textMuted, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5 }}>Favorite Cuisines</span>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {user?.preferredCuisines?.length > 0 ? user.preferredCuisines.map(c => (
+                  <Badge key={c} label={c} color={C.amber} />
+                )) : <span style={{ fontSize: 14, color: C.border, fontWeight: 600 }}>Not set</span>}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Bookings Tab ─────────────────────────────────────────────────────────────
 function BookingsTab() {
   const navigate = useNavigate();
@@ -843,10 +1057,11 @@ export default function AccountPage() {
         </div>
 
         {/* Tabs */}
-        <div style={{ display: "flex", gap: 4, marginBottom: 28, borderBottom: `1px solid ${C.border}` }}>
+        <div style={{ display: "flex", gap: 4, marginBottom: 28, borderBottom: `1px solid ${C.border}`, overflowX: "auto", paddingBottom: 4 }}>
           {[
-            { id: "bookings", label: "My Bookings",      icon: "📋" },
-            { id: "profile",  label: "Profile & Security", icon: "👤" },
+            { id: "bookings",    label: "My Bookings",        icon: "📋" },
+            { id: "preferences", label: "Dining Preferences", icon: "🍽️" },
+            { id: "profile",     label: "Profile & Security", icon: "👤" },
           ].map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
               style={{
@@ -854,7 +1069,7 @@ export default function AccountPage() {
                 borderBottom: `3px solid ${tab === t.id ? C.amber : "transparent"}`,
                 color: tab === t.id ? C.amber : C.textMuted, fontSize: 14, fontWeight: 700,
                 cursor: "pointer", fontFamily: "'DM Sans',sans-serif", transition: "all 0.15s",
-                display: "flex", alignItems: "center", gap: 8,
+                display: "flex", alignItems: "center", gap: 8, whiteSpace: "nowrap"
               }}>
               <span>{t.icon}</span> {t.label}
             </button>
@@ -862,8 +1077,9 @@ export default function AccountPage() {
         </div>
 
         {/* Content */}
-        {tab === "bookings" && <BookingsTab />}
-        {tab === "profile"  && <ProfileTab user={user} />}
+        {tab === "bookings"    && <BookingsTab />}
+        {tab === "preferences" && <PreferencesTab user={user} />}
+        {tab === "profile"     && <ProfileTab user={user} />}
       </div>
     </div>
   );
