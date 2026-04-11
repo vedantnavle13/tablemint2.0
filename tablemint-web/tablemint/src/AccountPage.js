@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import axios from "axios";
 import ReviewModal from "./components/ReviewModal";
+import BillModal from "./components/BillModal";
+import SpecialRequestForm from "./components/SpecialRequestForm";
 
 const C = {
   bg: "#FDFAF6", bgSoft: "#F5F0E8", bgCard: "#FFFFFF",
@@ -14,19 +16,20 @@ const C = {
 const FONTS = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@400;500;600;700&display=swap');`;
 
 const STATUS_CONFIG = {
-  pending: { label: "Pending", color: C.amber, icon: "⏳" },
-  confirmed: { label: "Confirmed", color: C.blue, icon: "✅" },
-  seated: { label: "Seated", color: C.green, icon: "🪑" },
-  completed: { label: "Completed", color: C.green, icon: "✓" },
-  cancelled: { label: "Cancelled", color: C.red, icon: "✗" },
-  no_show: { label: "No Show", color: C.red, icon: "❌" },
+  pending:   { label: "Pending",   color: C.amber,   icon: "⏳" },
+  confirmed: { label: "Confirmed", color: C.blue,    icon: "✅" },
+  seated:    { label: "Seated",    color: C.green,   icon: "🪑" },
+  completed: { label: "Completed", color: C.green,   icon: "✓"  },
+  cancelled: { label: "Cancelled", color: C.red,     icon: "✗"  },
+  no_show:   { label: "No Show",   color: C.red,     icon: "❌" },
 };
 
 function Badge({ label, color }) {
   return (
     <span style={{
       fontSize: 11, fontWeight: 700, padding: "4px 10px", borderRadius: 20,
-      background: color + "20", color, border: `1px solid ${color}40`, textTransform: "uppercase", letterSpacing: 0.5
+      background: color + "20", color, border: `1px solid ${color}40`,
+      textTransform: "uppercase", letterSpacing: 0.5,
     }}>
       {label}
     </span>
@@ -39,7 +42,7 @@ function Navbar({ user, onLogout }) {
     <nav style={{
       background: C.bgCard, borderBottom: `1px solid ${C.border}`, padding: "0 6%",
       height: 64, display: "flex", alignItems: "center", justifyContent: "space-between",
-      position: "sticky", top: 0, zIndex: 100
+      position: "sticky", top: 0, zIndex: 100,
     }}>
       <div onClick={() => navigate("/")} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
         <span style={{ fontSize: 20 }}>🍽️</span>
@@ -51,14 +54,15 @@ function Navbar({ user, onLogout }) {
         <button onClick={() => navigate("/explore")}
           style={{
             background: "transparent", border: `1.5px solid ${C.border}`, borderRadius: 10,
-            padding: "8px 16px", fontSize: 13, fontWeight: 600, color: C.textMid, cursor: "pointer", fontFamily: "'DM Sans',sans-serif"
+            padding: "8px 16px", fontSize: 13, fontWeight: 600, color: C.textMid,
+            cursor: "pointer", fontFamily: "'DM Sans',sans-serif",
           }}>
           Browse Restaurants
         </button>
         <button onClick={onLogout}
           style={{
             background: "transparent", border: "none", fontSize: 13, fontWeight: 600,
-            color: C.red, cursor: "pointer", fontFamily: "'DM Sans',sans-serif"
+            color: C.red, cursor: "pointer", fontFamily: "'DM Sans',sans-serif",
           }}>
           Sign Out
         </button>
@@ -69,20 +73,18 @@ function Navbar({ user, onLogout }) {
 
 // ─── Profile Tab ──────────────────────────────────────────────────────────────
 function ProfileTab({ user }) {
-  const [editing, setEditing] = useState(false);
-  const [name, setName] = useState(user?.name || "");
-  const [phone, setPhone] = useState(user?.phone || "");
-  const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState("");
-  const [error, setError] = useState("");
-
-  // Password change
-  const [changingPw, setChangingPw] = useState(false);
-  const [currentPw, setCurrentPw] = useState("");
-  const [newPw, setNewPw] = useState("");
-  const [confirmPw, setConfirmPw] = useState("");
-  const [pwMsg, setPwMsg] = useState("");
-  const [pwError, setPwError] = useState("");
+  const [editing, setEditing]     = useState(false);
+  const [name, setName]           = useState(user?.name || "");
+  const [phone, setPhone]         = useState(user?.phone || "");
+  const [loading, setLoading]     = useState(false);
+  const [msg, setMsg]             = useState("");
+  const [error, setError]         = useState("");
+  const [changingPw, setChangingPw]   = useState(false);
+  const [currentPw, setCurrentPw]     = useState("");
+  const [newPw, setNewPw]             = useState("");
+  const [confirmPw, setConfirmPw]     = useState("");
+  const [pwMsg, setPwMsg]             = useState("");
+  const [pwError, setPwError]         = useState("");
 
   const saveProfile = async () => {
     setLoading(true); setError(""); setMsg("");
@@ -98,7 +100,7 @@ function ProfileTab({ user }) {
 
   const savePassword = async () => {
     if (newPw !== confirmPw) { setPwError("Passwords don't match."); return; }
-    if (newPw.length < 6) { setPwError("Password must be at least 6 characters."); return; }
+    if (newPw.length < 6)   { setPwError("Password must be at least 6 characters."); return; }
     setLoading(true); setPwError(""); setPwMsg("");
     try {
       await axios.patch("/auth/change-password", { currentPassword: currentPw, newPassword: newPw });
@@ -113,7 +115,7 @@ function ProfileTab({ user }) {
 
   const inp = {
     width: "100%", padding: "11px 14px", borderRadius: 10, border: `1.5px solid ${C.border}`,
-    fontSize: 14, color: C.text, fontFamily: "'DM Sans',sans-serif", outline: "none", background: "#fff"
+    fontSize: 14, color: C.text, fontFamily: "'DM Sans',sans-serif", outline: "none", background: "#fff",
   };
 
   return (
@@ -126,19 +128,19 @@ function ProfileTab({ user }) {
             <button onClick={() => setEditing(true)}
               style={{
                 padding: "7px 16px", background: C.amberSoft, border: `1px solid ${C.amber}40`,
-                borderRadius: 8, fontSize: 13, fontWeight: 600, color: C.amber, cursor: "pointer", fontFamily: "'DM Sans',sans-serif"
+                borderRadius: 8, fontSize: 13, fontWeight: 600, color: C.amber, cursor: "pointer",
+                fontFamily: "'DM Sans',sans-serif",
               }}>
               Edit
             </button>
           )}
         </div>
 
-        {/* Avatar */}
         <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
           <div style={{
             width: 64, height: 64, borderRadius: "50%", background: C.amber + "20",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontFamily: "'Playfair Display',serif", fontSize: 28, fontWeight: 700, color: C.amber
+            fontFamily: "'Playfair Display',serif", fontSize: 28, fontWeight: 700, color: C.amber,
           }}>
             {user?.name?.[0]?.toUpperCase() || "?"}
           </div>
@@ -149,34 +151,28 @@ function ProfileTab({ user }) {
           </div>
         </div>
 
-        {msg && <div style={{ padding: "10px 14px", background: C.green + "15", borderRadius: 8, fontSize: 13, color: C.green, marginBottom: 16 }}>{msg}</div>}
+        {msg   && <div style={{ padding: "10px 14px", background: C.green + "15", borderRadius: 8, fontSize: 13, color: C.green, marginBottom: 16 }}>{msg}</div>}
         {error && <div style={{ padding: "10px 14px", background: C.red + "15", borderRadius: 8, fontSize: 13, color: C.red, marginBottom: 16 }}>⚠️ {error}</div>}
 
         {editing ? (
           <div>
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 12, fontWeight: 700, color: C.textMid, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Full Name</label>
-              <input value={name} onChange={e => setName(e.target.value)} style={inp}
-                onFocus={e => e.target.style.borderColor = C.amber} onBlur={e => e.target.style.borderColor = C.border} />
-            </div>
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ fontSize: 12, fontWeight: 700, color: C.textMid, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Phone</label>
-              <input value={phone} onChange={e => setPhone(e.target.value)} style={inp}
-                onFocus={e => e.target.style.borderColor = C.amber} onBlur={e => e.target.style.borderColor = C.border} />
-            </div>
+            {[
+              { label: "Full Name", value: name, set: setName, type: "text" },
+              { label: "Phone",     value: phone, set: setPhone, type: "tel" },
+            ].map(({ label, value, set, type }) => (
+              <div key={label} style={{ marginBottom: 16 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: C.textMid, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</label>
+                <input type={type} value={value} onChange={e => set(e.target.value)} style={inp}
+                  onFocus={e => (e.target.style.borderColor = C.amber)} onBlur={e => (e.target.style.borderColor = C.border)} />
+              </div>
+            ))}
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={saveProfile} disabled={loading}
-                style={{
-                  flex: 1, padding: "10px", background: C.amber, border: "none", borderRadius: 10,
-                  color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans',sans-serif"
-                }}>
+                style={{ flex: 1, padding: "10px", background: C.amber, border: "none", borderRadius: 10, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans',sans-serif" }}>
                 {loading ? "Saving…" : "Save Changes"}
               </button>
               <button onClick={() => { setEditing(false); setName(user?.name); setPhone(user?.phone); }}
-                style={{
-                  padding: "10px 16px", background: "transparent", border: `1.5px solid ${C.border}`,
-                  borderRadius: 10, color: C.textMid, fontSize: 14, cursor: "pointer", fontFamily: "'DM Sans',sans-serif"
-                }}>
+                style={{ padding: "10px 16px", background: "transparent", border: `1.5px solid ${C.border}`, borderRadius: 10, color: C.textMid, fontSize: 14, cursor: "pointer", fontFamily: "'DM Sans',sans-serif" }}>
                 Cancel
               </button>
             </div>
@@ -184,9 +180,9 @@ function ProfileTab({ user }) {
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {[
-              { label: "Full Name", value: user?.name },
-              { label: "Email", value: user?.email },
-              { label: "Phone", value: user?.phone || "Not set" },
+              { label: "Full Name",    value: user?.name },
+              { label: "Email",        value: user?.email },
+              { label: "Phone",        value: user?.phone || "Not set" },
               { label: "Member Since", value: user?.createdAt ? new Date(user.createdAt).toLocaleDateString("en-IN", { month: "long", year: "numeric" }) : "—" },
             ].map(({ label, value }) => (
               <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: `1px solid ${C.border}` }}>
@@ -204,44 +200,35 @@ function ProfileTab({ user }) {
           <h3 style={{ fontFamily: "'Playfair Display',serif", fontSize: 20, fontWeight: 700, color: C.text }}>Password</h3>
           {!changingPw && (
             <button onClick={() => setChangingPw(true)}
-              style={{
-                padding: "7px 16px", background: C.amberSoft, border: `1px solid ${C.amber}40`,
-                borderRadius: 8, fontSize: 13, fontWeight: 600, color: C.amber, cursor: "pointer", fontFamily: "'DM Sans',sans-serif"
-              }}>
+              style={{ padding: "7px 16px", background: C.amberSoft, border: `1px solid ${C.amber}40`, borderRadius: 8, fontSize: 13, fontWeight: 600, color: C.amber, cursor: "pointer", fontFamily: "'DM Sans',sans-serif" }}>
               Change
             </button>
           )}
         </div>
 
-        {pwMsg && <div style={{ padding: "10px 14px", background: C.green + "15", borderRadius: 8, fontSize: 13, color: C.green, marginBottom: 16 }}>{pwMsg}</div>}
+        {pwMsg   && <div style={{ padding: "10px 14px", background: C.green + "15", borderRadius: 8, fontSize: 13, color: C.green, marginBottom: 16 }}>{pwMsg}</div>}
         {pwError && <div style={{ padding: "10px 14px", background: C.red + "15", borderRadius: 8, fontSize: 13, color: C.red, marginBottom: 16 }}>⚠️ {pwError}</div>}
 
         {changingPw ? (
           <div>
             {[
               { label: "Current Password", value: currentPw, set: setCurrentPw },
-              { label: "New Password", value: newPw, set: setNewPw },
-              { label: "Confirm New Password", value: confirmPw, set: setConfirmPw },
+              { label: "New Password",     value: newPw,     set: setNewPw },
+              { label: "Confirm New",      value: confirmPw, set: setConfirmPw },
             ].map(({ label, value, set }) => (
               <div key={label} style={{ marginBottom: 16 }}>
                 <label style={{ fontSize: 12, fontWeight: 700, color: C.textMid, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</label>
                 <input type="password" value={value} onChange={e => set(e.target.value)} style={inp}
-                  onFocus={e => e.target.style.borderColor = C.amber} onBlur={e => e.target.style.borderColor = C.border} />
+                  onFocus={e => (e.target.style.borderColor = C.amber)} onBlur={e => (e.target.style.borderColor = C.border)} />
               </div>
             ))}
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={savePassword} disabled={loading}
-                style={{
-                  flex: 1, padding: "10px", background: C.amber, border: "none", borderRadius: 10,
-                  color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans',sans-serif"
-                }}>
+                style={{ flex: 1, padding: "10px", background: C.amber, border: "none", borderRadius: 10, color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans',sans-serif" }}>
                 {loading ? "Saving…" : "Update Password"}
               </button>
               <button onClick={() => { setChangingPw(false); setCurrentPw(""); setNewPw(""); setConfirmPw(""); setPwError(""); }}
-                style={{
-                  padding: "10px 16px", background: "transparent", border: `1.5px solid ${C.border}`,
-                  borderRadius: 10, color: C.textMid, fontSize: 14, cursor: "pointer", fontFamily: "'DM Sans',sans-serif"
-                }}>
+                style={{ padding: "10px 16px", background: "transparent", border: `1.5px solid ${C.border}`, borderRadius: 10, color: C.textMid, fontSize: 14, cursor: "pointer", fontFamily: "'DM Sans',sans-serif" }}>
                 Cancel
               </button>
             </div>
@@ -265,13 +252,22 @@ function BookingsTab() {
   const [filter, setFilter]               = useState("all");
   const [selected, setSelected]           = useState(null);
   const [cancelling, setCancelling]       = useState(null);
+
   // Review state
-  const [reviewTarget, setReviewTarget]   = useState(null); // { reservation, restaurantId, restaurantName }
-  const [reviewedIds, setReviewedIds]     = useState(new Set()); // reservation IDs already reviewed
-  const [reviewSuccess, setReviewSuccess] = useState(null); // reservation _id that just got reviewed
+  const [reviewTarget, setReviewTarget]   = useState(null);
+  const [reviewedIds, setReviewedIds]     = useState(new Set());
+  const [reviewSuccess, setReviewSuccess] = useState(null);
+
+  // Bill state
+  const [billTarget, setBillTarget]       = useState(null);  // reservation object with full bill data
+  const [billLoading, setBillLoading]     = useState(null);  // reservation._id being loaded
+  const [paying, setPaying]               = useState(false);
+
+  // Track customer messages (updated locally after send)
+  const [localMessages, setLocalMessages] = useState({}); // { reservationId: message }
 
   useEffect(() => {
-    axios.get("/reservations/my")
+    axios.get("/reservations/my?limit=100")
       .then(r => setReservations(r.data.data.reservations || []))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -284,19 +280,21 @@ function BookingsTab() {
       await axios.patch(`/reservations/${id}/cancel`, { reason: "Cancelled by customer" });
       setReservations(prev => prev.map(r => r._id === id ? { ...r, status: "cancelled" } : r));
       if (selected?._id === id) setSelected(p => ({ ...p, status: "cancelled" }));
-    } catch (e) {} finally { setCancelling(null); }
+    } catch (e) {
+      alert(e.response?.data?.message || "Failed to cancel reservation.");
+    } finally { setCancelling(null); }
   };
 
-  // A booking is reviewable if it is confirmed/completed AND the visit date is in the past
+  // ── Review eligibility: ONLY completed status + past date ─────────────────
   const isReviewable = (r) =>
-    ["confirmed", "completed", "seated"].includes(r.status) &&
-    new Date(r.scheduledAt) <= new Date();
+    r.status === "completed" && new Date(r.scheduledAt) <= new Date();
 
+  // ── Cancel eligibility: pending or confirmed only ─────────────────────────
   const canCancel = (r) => ["pending", "confirmed"].includes(r.status);
 
-  const filtered = filter === "all" ? reservations
-    : filter === "upcoming" ? reservations.filter(r => ["pending", "confirmed"].includes(r.status))
-    : filter === "past"     ? reservations.filter(r => ["completed", "cancelled", "no_show"].includes(r.status))
+  const filtered = filter === "all"      ? reservations
+    : filter === "upcoming"              ? reservations.filter(r => ["pending", "confirmed", "seated"].includes(r.status))
+    : filter === "past"                  ? reservations.filter(r => ["completed", "cancelled", "no_show"].includes(r.status))
     : reservations.filter(r => r.status === filter);
 
   const handleReviewSuccess = (reservationId) => {
@@ -306,13 +304,58 @@ function BookingsTab() {
     setTimeout(() => setReviewSuccess(null), 4000);
   };
 
+  // ── Load full bill data from API then open BillModal ─────────────────────
+  const openBill = async (reservationId) => {
+    setBillLoading(reservationId);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(`/reservations/${reservationId}/bill`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      setBillTarget(res.data.data.reservation);
+    } catch (e) {
+      alert(e.response?.data?.message || "Could not load bill. Please try again.");
+    } finally {
+      setBillLoading(null);
+    }
+  };
+
+  // ── Mark payment as paid ─────────────────────────────────────────────────
+  const handlePay = async () => {
+    if (!billTarget) return;
+    setPaying(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.patch(
+        `/reservations/${billTarget._id}/payment`,
+        { paymentStatus: "paid" },
+        { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+      );
+      // Update local bill state
+      setBillTarget(p => ({ ...p, paymentStatus: "paid", paymentReference: res.data.data.paymentReference }));
+      // Also update reservation list
+      setReservations(prev => prev.map(r =>
+        r._id === billTarget._id ? { ...r, paymentStatus: "paid" } : r
+      ));
+    } catch (e) {
+      alert(e.response?.data?.message || "Payment failed. Please try again.");
+    } finally {
+      setPaying(false);
+    }
+  };
+
   if (loading) return <div style={{ padding: 60, textAlign: "center", color: C.textMuted }}>Loading bookings…</div>;
 
   return (
     <div>
-      {/* Filter */}
+      {/* Filter Tabs */}
       <div style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
-        {[{ id: "all", label: "All" }, { id: "upcoming", label: "Upcoming" }, { id: "past", label: "Past" }, { id: "cancelled", label: "Cancelled" }].map(f => (
+        {[
+          { id: "all",       label: "All" },
+          { id: "upcoming",  label: "Upcoming" },
+          { id: "past",      label: "Past" },
+          { id: "cancelled", label: "Cancelled" },
+        ].map(f => (
           <button key={f.id} onClick={() => setFilter(f.id)}
             style={{
               padding: "7px 16px", borderRadius: 20, fontSize: 13, fontWeight: 600,
@@ -347,21 +390,25 @@ function BookingsTab() {
           <button onClick={() => navigate("/explore")}
             style={{
               padding: "12px 28px", background: C.amber, border: "none", borderRadius: 12,
-              color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans',sans-serif"
+              color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans',sans-serif",
             }}>
             Browse Restaurants →
           </button>
         </div>
       ) : (
         <div style={{ display: "flex", gap: 20 }}>
-          {/* Booking list */}
+          {/* ── Booking List ── */}
           <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 14 }}>
             {filtered.map(r => {
-              const cfg         = STATUS_CONFIG[r.status] || {};
-              const upcoming    = canCancel(r);
-              const isSelected  = selected?._id === r._id;
-              const reviewable  = isReviewable(r);
+              const cfg        = STATUS_CONFIG[r.status] || {};
+              const isSelected = selected?._id === r._id;
+              const reviewable = isReviewable(r);
               const alreadyDone = reviewedIds.has(r._id);
+              const hasBill    = r.status === "completed" && r.billGeneratedAt;
+              const isPaid     = r.paymentStatus === "paid" || r.paymentStatus === "waived";
+              const isConfirmed = r.status === "confirmed";
+              const currentMsg = localMessages[r._id] || r.customerMessage;
+
               return (
                 <div key={r._id} onClick={() => setSelected(isSelected ? null : r)}
                   style={{
@@ -374,28 +421,87 @@ function BookingsTab() {
 
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                     <div style={{ flex: 1 }}>
+                      {/* Restaurant name + status */}
                       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
                         <span style={{ fontSize: 20 }}>{cfg.icon}</span>
                         <span style={{ fontFamily: "'Playfair Display',serif", fontSize: 17, fontWeight: 700, color: C.text }}>
                           {r.restaurant?.name || "Restaurant"}
                         </span>
                         <Badge label={cfg.label || r.status} color={cfg.color || C.textMuted} />
+                        {hasBill && isPaid && <Badge label="Paid ✓" color={C.green} />}
+                        {hasBill && !isPaid && <Badge label="Bill Ready" color={C.blue} />}
                       </div>
+
+                      {/* Meta info */}
                       <div style={{ display: "flex", gap: 16, fontSize: 13, color: C.textMuted, flexWrap: "wrap" }}>
                         <span>📅 {new Date(r.scheduledAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</span>
                         <span>🕐 {new Date(r.scheduledAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span>
                         <span>👥 {r.numberOfGuests} guest{r.numberOfGuests !== 1 ? "s" : ""}</span>
                         <span style={{ fontFamily: "monospace", color: C.amber, fontWeight: 700 }}>#{r._id.slice(-8).toUpperCase()}</span>
                       </div>
+
+                      {/* Pre-order summary */}
                       {r.preOrderItems?.length > 0 && (
                         <div style={{ marginTop: 8, fontSize: 12, color: C.green, fontWeight: 600 }}>
                           🍽️ Pre-order: {r.preOrderItems.length} item{r.preOrderItems.length !== 1 ? "s" : ""} · ₹{r.preOrderTotal}
                         </div>
                       )}
 
-                      {/* ── Review CTA ── */}
+                      {/* ── Special Request form (confirmed only) ── */}
+                      {isConfirmed && (
+                        <div onClick={e => e.stopPropagation()}>
+                          <SpecialRequestForm
+                            reservationId={r._id}
+                            existingMessage={currentMsg}
+                            existingMessageSentAt={r.customerMessageSentAt}
+                            onSent={(msg) => {
+                              setLocalMessages(p => ({ ...p, [r._id]: msg }));
+                              setReservations(prev => prev.map(res =>
+                                res._id === r._id ? { ...res, customerMessage: msg } : res
+                              ));
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      {/* ── Bill + Pay buttons (completed with bill) ── */}
+                      {hasBill && (
+                        <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }} onClick={e => e.stopPropagation()}>
+                          <button
+                            id={`view-bill-btn-${r._id}`}
+                            onClick={() => openBill(r._id)}
+                            disabled={billLoading === r._id}
+                            style={{
+                              display: "inline-flex", alignItems: "center", gap: 6,
+                              padding: "7px 16px", borderRadius: 20,
+                              background: C.blue + "15", border: `1px solid ${C.blue}40`,
+                              color: C.blue, fontSize: 12, fontWeight: 700, cursor: "pointer",
+                              fontFamily: "'DM Sans',sans-serif",
+                            }}>
+                            {billLoading === r._id ? "Loading…" : "🧾 View Bill"}
+                          </button>
+                          {!isPaid && (
+                            <button
+                              id={`pay-btn-${r._id}`}
+                              onClick={() => openBill(r._id) /* opens bill + shows Pay CTA */}
+                              style={{
+                                display: "inline-flex", alignItems: "center", gap: 6,
+                                padding: "7px 16px", borderRadius: 20,
+                                background: "linear-gradient(135deg, #4A9B6F, #3A8B5F)",
+                                border: "none", color: "#fff",
+                                fontSize: 12, fontWeight: 700, cursor: "pointer",
+                                fontFamily: "'DM Sans',sans-serif",
+                                boxShadow: "0 2px 8px rgba(74,155,111,0.3)",
+                              }}>
+                              💳 Pay Online
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {/* ── Review CTA (completed only) ── */}
                       {reviewable && (
-                        <div style={{ marginTop: 12 }}>
+                        <div style={{ marginTop: 12 }} onClick={e => e.stopPropagation()}>
                           {alreadyDone ? (
                             <span style={{
                               display: "inline-flex", alignItems: "center", gap: 6,
@@ -405,14 +511,12 @@ function BookingsTab() {
                             }}>✅ Review Submitted</span>
                           ) : (
                             <button
-                              onClick={e => {
-                                e.stopPropagation();
-                                setReviewTarget({
-                                  reservation: r,
-                                  restaurantId: r.restaurant?._id || r.restaurant,
-                                  restaurantName: r.restaurant?.name || "Restaurant",
-                                });
-                              }}
+                              id={`review-btn-${r._id}`}
+                              onClick={() => setReviewTarget({
+                                reservation: r,
+                                restaurantId: r.restaurant?._id || r.restaurant,
+                                restaurantName: r.restaurant?.name || "Restaurant",
+                              })}
                               style={{
                                 display: "inline-flex", alignItems: "center", gap: 6,
                                 padding: "7px 16px", borderRadius: 20,
@@ -423,17 +527,19 @@ function BookingsTab() {
                                 boxShadow: "0 2px 8px rgba(212,136,58,0.3)",
                                 transition: "all 0.2s",
                               }}
-                              onMouseEnter={e => e.currentTarget.style.transform = "translateY(-1px)"}
-                              onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}
-                            >⭐ Write a Review</button>
+                              onMouseEnter={e => (e.currentTarget.style.transform = "translateY(-1px)")}
+                              onMouseLeave={e => (e.currentTarget.style.transform = "translateY(0)")}>
+                              ⭐ Write a Review
+                            </button>
                           )}
                         </div>
                       )}
                     </div>
 
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
+                    {/* Right side: fee + cancel */}
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8, marginLeft: 12 }}>
                       <div style={{ fontSize: 16, fontWeight: 700, color: C.amber }}>₹{r.reservationFee || 0}</div>
-                      {upcoming && (
+                      {canCancel(r) && (
                         <button
                           disabled={cancelling === r._id}
                           onClick={e => { e.stopPropagation(); cancelReservation(r._id); }}
@@ -453,10 +559,10 @@ function BookingsTab() {
             })}
           </div>
 
-          {/* Detail panel */}
+          {/* ── Detail Panel ── */}
           {selected && (
             <div style={{
-              width: 300, flexShrink: 0, background: C.bgCard, borderRadius: 16,
+              width: 320, flexShrink: 0, background: C.bgCard, borderRadius: 16,
               border: `1px solid ${C.border}`, padding: 24, alignSelf: "flex-start",
             }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
@@ -473,13 +579,14 @@ function BookingsTab() {
               </div>
 
               {[
-                { label: "Booking ID", value: `#${selected._id.slice(-8).toUpperCase()}` },
-                { label: "Date",       value: new Date(selected.scheduledAt).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "long" }) },
-                { label: "Time",       value: new Date(selected.scheduledAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) },
-                { label: "Guests",     value: selected.numberOfGuests },
-                { label: "Type",       value: selected.type === "instant" ? "Instant Booking" : "Scheduled" },
-                { label: "Res Fee",    value: `₹${selected.reservationFee || 0}` },
-                { label: "Status",     value: <Badge label={STATUS_CONFIG[selected.status]?.label} color={STATUS_CONFIG[selected.status]?.color} /> },
+                { label: "Booking ID",    value: `#${selected._id.slice(-8).toUpperCase()}` },
+                { label: "Date",          value: new Date(selected.scheduledAt).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "long" }) },
+                { label: "Time",          value: new Date(selected.scheduledAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) },
+                { label: "Guests",        value: selected.numberOfGuests },
+                { label: "Type",          value: selected.type === "instant" ? "Instant Booking" : "Scheduled" },
+                { label: "Res Fee",       value: `₹${selected.reservationFee || 0}` },
+                { label: "Status",        value: <Badge label={STATUS_CONFIG[selected.status]?.label} color={STATUS_CONFIG[selected.status]?.color} /> },
+                { label: "Payment",       value: <Badge label={selected.paymentStatus || "unpaid"} color={selected.paymentStatus === "paid" ? C.green : C.textMuted} /> },
               ].map(({ label, value }) => (
                 <div key={label} style={{
                   display: "flex", justifyContent: "space-between", alignItems: "center",
@@ -490,12 +597,22 @@ function BookingsTab() {
                 </div>
               ))}
 
+              {/* Special Requests (from booking form) */}
               {selected.specialRequests && (
                 <div style={{ marginTop: 12, padding: 12, background: C.amberSoft, borderRadius: 8, fontSize: 13, color: C.textMid }}>
                   💬 {selected.specialRequests}
                 </div>
               )}
 
+              {/* Customer Message (sent post-confirmation) */}
+              {(localMessages[selected._id] || selected.customerMessage) && (
+                <div style={{ marginTop: 12, padding: 12, background: C.blue + "12", borderRadius: 8, fontSize: 12, color: C.blue, border: `1px solid ${C.blue}30` }}>
+                  <div style={{ fontWeight: 700, marginBottom: 3 }}>📤 Your Special Request</div>
+                  {localMessages[selected._id] || selected.customerMessage}
+                </div>
+              )}
+
+              {/* Pre-order items */}
               {selected.preOrderItems?.length > 0 && (
                 <div style={{ marginTop: 16 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 10 }}>🍽️ Your Pre-Order</div>
@@ -512,51 +629,100 @@ function BookingsTab() {
                     <span style={{ fontSize: 14, color: C.text }}>Pre-Order Total</span>
                     <span style={{ fontSize: 16, color: C.amber }}>₹{selected.preOrderTotal}</span>
                   </div>
-                  <div style={{ padding: 10, background: C.green + "15", borderRadius: 8, fontSize: 12, color: C.green, fontWeight: 600, textAlign: "center" }}>
-                    💳 Pay pre-order amount at the restaurant
+                </div>
+              )}
+
+              {/* Bill total summary (if generated) */}
+              {selected.billGeneratedAt && (
+                <div style={{
+                  marginTop: 16, padding: "12px 14px",
+                  background: "linear-gradient(135deg, #FBF0E0, #F5E8D0)",
+                  borderRadius: 10, border: `1px solid ${C.amber}30`,
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }}>Bill Total</div>
+                      <div style={{ fontSize: 18, fontWeight: 900, color: C.amber }}>₹{(selected.billTotal || 0).toFixed(2)}</div>
+                      <div style={{ fontSize: 11, color: C.textMuted }}>incl. ₹{(selected.billTax || 0).toFixed(2)} tax</div>
+                    </div>
+                    <span style={{ fontSize: 28 }}>🧾</span>
                   </div>
                 </div>
               )}
 
-              {canCancel(selected) && (
-                <button
-                  disabled={cancelling === selected._id}
-                  onClick={() => cancelReservation(selected._id)}
-                  style={{
-                    width: "100%", marginTop: 16, padding: "11px",
-                    background: C.red + "15", border: `1.5px solid ${C.red}40`,
-                    borderRadius: 10, color: C.red, fontSize: 14, fontWeight: 700,
-                    cursor: "pointer", fontFamily: "'DM Sans',sans-serif",
-                  }}>
-                  {cancelling === selected._id ? "Cancelling…" : "Cancel Reservation"}
-                </button>
-              )}
+              {/* Action buttons */}
+              <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+                {canCancel(selected) && (
+                  <button
+                    disabled={cancelling === selected._id}
+                    onClick={() => cancelReservation(selected._id)}
+                    style={{
+                      width: "100%", padding: "11px",
+                      background: C.red + "15", border: `1.5px solid ${C.red}40`,
+                      borderRadius: 10, color: C.red, fontSize: 14, fontWeight: 700,
+                      cursor: "pointer", fontFamily: "'DM Sans',sans-serif",
+                    }}>
+                    {cancelling === selected._id ? "Cancelling…" : "Cancel Reservation"}
+                  </button>
+                )}
 
-              {/* Review button in detail panel */}
-              {isReviewable(selected) && !reviewedIds.has(selected._id) && (
-                <button
-                  onClick={() => setReviewTarget({
-                    reservation: selected,
-                    restaurantId: selected.restaurant?._id || selected.restaurant,
-                    restaurantName: selected.restaurant?.name || "Restaurant",
-                  })}
-                  style={{
-                    width: "100%", marginTop: 12, padding: "11px",
-                    background: "linear-gradient(135deg, #D4883A, #E8A050)",
-                    border: "none", borderRadius: 10, color: "#fff",
-                    fontSize: 14, fontWeight: 700, cursor: "pointer",
-                    fontFamily: "'DM Sans',sans-serif",
-                    boxShadow: "0 4px 14px rgba(212,136,58,0.3)",
-                  }}>
-                  ⭐ Write a Review
-                </button>
+                {/* View Bill in detail panel */}
+                {selected.billGeneratedAt && (
+                  <button
+                    onClick={() => openBill(selected._id)}
+                    disabled={billLoading === selected._id}
+                    style={{
+                      width: "100%", padding: "11px",
+                      background: C.blue + "15", border: `1.5px solid ${C.blue}40`,
+                      borderRadius: 10, color: C.blue, fontSize: 14, fontWeight: 700,
+                      cursor: "pointer", fontFamily: "'DM Sans',sans-serif",
+                    }}>
+                    {billLoading === selected._id ? "Loading Bill…" : "🧾 View Full Bill"}
+                  </button>
+                )}
+
+                {/* Review button in detail panel */}
+                {isReviewable(selected) && !reviewedIds.has(selected._id) && (
+                  <button
+                    onClick={() => setReviewTarget({
+                      reservation: selected,
+                      restaurantId: selected.restaurant?._id || selected.restaurant,
+                      restaurantName: selected.restaurant?.name || "Restaurant",
+                    })}
+                    style={{
+                      width: "100%", padding: "11px",
+                      background: "linear-gradient(135deg, #D4883A, #E8A050)",
+                      border: "none", borderRadius: 10, color: "#fff",
+                      fontSize: 14, fontWeight: 700, cursor: "pointer",
+                      fontFamily: "'DM Sans',sans-serif",
+                      boxShadow: "0 4px 14px rgba(212,136,58,0.3)",
+                    }}>
+                    ⭐ Write a Review
+                  </button>
+                )}
+              </div>
+
+              {/* Special Request form in panel for confirmed bookings */}
+              {selected.status === "confirmed" && (
+                <SpecialRequestForm
+                  reservationId={selected._id}
+                  existingMessage={localMessages[selected._id] || selected.customerMessage}
+                  existingMessageSentAt={selected.customerMessageSentAt}
+                  onSent={(msg) => {
+                    setLocalMessages(p => ({ ...p, [selected._id]: msg }));
+                    setSelected(p => ({ ...p, customerMessage: msg }));
+                    setReservations(prev => prev.map(res =>
+                      res._id === selected._id ? { ...res, customerMessage: msg } : res
+                    ));
+                  }}
+                />
               )}
             </div>
           )}
         </div>
       )}
 
-      {/* Review Modal */}
+      {/* ── Review Modal ── */}
       {reviewTarget && (
         <ReviewModal
           reservation={reviewTarget.reservation}
@@ -564,6 +730,16 @@ function BookingsTab() {
           restaurantName={reviewTarget.restaurantName}
           onClose={() => setReviewTarget(null)}
           onSuccess={() => handleReviewSuccess(reviewTarget.reservation._id)}
+        />
+      )}
+
+      {/* ── Bill Modal ── */}
+      {billTarget && (
+        <BillModal
+          reservation={billTarget}
+          onClose={() => setBillTarget(null)}
+          onPay={billTarget.paymentStatus === "paid" ? null : handlePay}
+          paying={paying}
         />
       )}
     </div>
@@ -580,13 +756,13 @@ export default function AccountPage() {
   useEffect(() => {
     if (!isLoggedIn && !loading) { navigate("/login"); return; }
     if (user?.role !== "customer") {
-      if (user?.role === "owner") navigate("/owner/dashboard");
+      if (user?.role === "owner")     navigate("/owner/dashboard");
       else if (user?.role === "admin") navigate("/admin/dashboard");
       return;
     }
     axios.get("/reservations/my?limit=1")
       .then(r => setReservationCount(r.data.total || 0))
-      .catch(() => { });
+      .catch(() => {});
   }, [isLoggedIn, loading, user, navigate]);
 
   const handleLogout = async () => { await logout(); navigate("/"); };
@@ -596,7 +772,7 @@ export default function AccountPage() {
       <div style={{ textAlign: "center" }}>
         <div style={{
           width: 40, height: 40, border: `4px solid ${C.border}`, borderTop: `4px solid ${C.amber}`,
-          borderRadius: "50%", animation: "spin 1s linear infinite", margin: "0 auto 16px"
+          borderRadius: "50%", animation: "spin 1s linear infinite", margin: "0 auto 16px",
         }} />
         <p style={{ color: C.textMuted, fontSize: 14 }}>Loading…</p>
         <style>{`@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}`}</style>
@@ -615,12 +791,12 @@ export default function AccountPage() {
         {/* Header */}
         <div style={{
           display: "flex", alignItems: "center", gap: 20, marginBottom: 36,
-          padding: 28, background: C.bgCard, borderRadius: 20, border: `1px solid ${C.border}`
+          padding: 28, background: C.bgCard, borderRadius: 20, border: `1px solid ${C.border}`,
         }}>
           <div style={{
             width: 72, height: 72, borderRadius: "50%", background: C.amber + "20",
             display: "flex", alignItems: "center", justifyContent: "center",
-            fontFamily: "'Playfair Display',serif", fontSize: 32, fontWeight: 700, color: C.amber, flexShrink: 0
+            fontFamily: "'Playfair Display',serif", fontSize: 32, fontWeight: 700, color: C.amber, flexShrink: 0,
           }}>
             {user?.name?.[0]?.toUpperCase() || "?"}
           </div>
@@ -630,11 +806,10 @@ export default function AccountPage() {
             </h1>
             <div style={{ fontSize: 14, color: C.textMuted, marginBottom: 12 }}>{user?.email}</div>
 
-            {/* Customer ID — show prominently */}
             {user?.customerId && (
               <div style={{
                 display: "inline-flex", alignItems: "center", gap: 10, padding: "8px 16px",
-                background: C.amber + "15", border: `1.5px solid ${C.amber}40`, borderRadius: 10, marginBottom: 12
+                background: C.amber + "15", border: `1.5px solid ${C.amber}40`, borderRadius: 10, marginBottom: 12,
               }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: C.textMid }}>YOUR CUSTOMER ID</span>
                 <span style={{ fontFamily: "monospace", fontSize: 22, fontWeight: 900, color: C.amber, letterSpacing: 3 }}>
@@ -660,8 +835,8 @@ export default function AccountPage() {
           <button onClick={() => navigate("/explore")}
             style={{
               padding: "11px 24px", background: C.amber, border: "none", borderRadius: 12,
-              color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer", fontFamily: "'DM Sans',sans-serif",
-              boxShadow: `0 4px 16px ${C.amber}40`
+              color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer",
+              fontFamily: "'DM Sans',sans-serif", boxShadow: `0 4px 16px ${C.amber}40`,
             }}>
             Book a Table →
           </button>
@@ -670,8 +845,8 @@ export default function AccountPage() {
         {/* Tabs */}
         <div style={{ display: "flex", gap: 4, marginBottom: 28, borderBottom: `1px solid ${C.border}` }}>
           {[
-            { id: "bookings", label: "My Bookings", icon: "📋" },
-            { id: "profile", label: "Profile & Security", icon: "👤" },
+            { id: "bookings", label: "My Bookings",      icon: "📋" },
+            { id: "profile",  label: "Profile & Security", icon: "👤" },
           ].map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
               style={{
@@ -679,7 +854,7 @@ export default function AccountPage() {
                 borderBottom: `3px solid ${tab === t.id ? C.amber : "transparent"}`,
                 color: tab === t.id ? C.amber : C.textMuted, fontSize: 14, fontWeight: 700,
                 cursor: "pointer", fontFamily: "'DM Sans',sans-serif", transition: "all 0.15s",
-                display: "flex", alignItems: "center", gap: 8
+                display: "flex", alignItems: "center", gap: 8,
               }}>
               <span>{t.icon}</span> {t.label}
             </button>
@@ -688,7 +863,7 @@ export default function AccountPage() {
 
         {/* Content */}
         {tab === "bookings" && <BookingsTab />}
-        {tab === "profile" && <ProfileTab user={user} />}
+        {tab === "profile"  && <ProfileTab user={user} />}
       </div>
     </div>
   );

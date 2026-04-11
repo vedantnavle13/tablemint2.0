@@ -392,7 +392,25 @@ function ReservationsTab() {
                     ))}
                   </td>
                   <td style={{ padding: "13px 14px" }}>
-                    <Btn size="sm" outline color={C.blue} onClick={() => setNotifyR(r)} style={{ marginBottom: 6, display: "block" }}>📧 Notify</Btn>
+                    {/* Notify — only for active (non-terminal) statuses */}
+                    {!["completed", "cancelled", "no_show"].includes(r.status) && (
+                      <Btn size="sm" outline color={C.blue} onClick={() => setNotifyR(r)} style={{ marginBottom: 6, display: "block" }}>📧 Notify</Btn>
+                    )}
+                    {/* View Bill — only for completed with bill */}
+                    {r.status === "completed" && r.billGeneratedAt && (
+                      <div style={{ fontSize: 12, color: C.green, fontWeight: 700, marginBottom: 4 }}>
+                        🧾 Bill: ₹{(r.billTotal || 0).toFixed(2)}
+                        <span style={{ fontSize: 10, color: C.textMuted, fontWeight: 400, marginLeft: 4 }}>
+                          ({r.paymentStatus || "unpaid"})
+                        </span>
+                      </div>
+                    )}
+                    {/* Customer Message badge */}
+                    {r.customerMessage && (
+                      <div style={{ fontSize: 11, color: C.blue, fontWeight: 600, marginTop: 4 }} title={r.customerMessage}>
+                        💬 Special Request
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}

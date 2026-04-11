@@ -153,7 +153,7 @@ exports.getAdminReservations = catchAsync(async (req, res, next) => {
   const reservations = await Reservation.find({ restaurant: restId })
     .sort('-scheduledAt')
     .limit(200)
-    .populate('customer', 'name email customerId')
+    .populate('customer', 'name customerId')
     .populate('restaurant', 'name')
     .lean();
 
@@ -161,11 +161,12 @@ exports.getAdminReservations = catchAsync(async (req, res, next) => {
 });
 
 // ── @PATCH /api/admin/reservations/:id/status ─────────────────────────────────
+// Uses the same time-gate rules as the main reservationController.
 exports.updateAdminReservationStatus = catchAsync(async (req, res, next) => {
   const restId = req.user.assignedRestaurant;
   if (!restId) return next(new AppError('No restaurant assigned to this account.', 403));
 
-  const { status } = req.body;
+  const { status, cancellationReason } = req.body;
   const VALID = ['confirmed', 'seated', 'completed', 'cancelled', 'no_show'];
   if (!VALID.includes(status)) {
     return next(new AppError(`Invalid status. Must be one of: ${VALID.join(', ')}`, 400));
@@ -174,12 +175,71 @@ exports.updateAdminReservationStatus = catchAsync(async (req, res, next) => {
   const reservation = await Reservation.findOne({ _id: req.params.id, restaurant: restId });
   if (!reservation) return next(new AppError('Reservation not found in your restaurant.', 404));
 
+  // ── Valid status transitions ──────────────────────────────────────────────
+  const validTransitions = {
+    pending:   ['confirmed', 'cancelled'],
+    confirmed: ['seated', 'cancelled', 'no_show'],
+    seated:    ['completed'],
+    completed: [], cancelled: [], no_show: [],
+  };
+
+  if (!validTransitions[reservation.status]?.includes(status))
+    return next(new AppError(`Cannot transition from "${reservation.status}" to "${status}".`, 400));
+
+  const now = new Date();
+
+  // ── Time-gate: confirmed → seated (30 min before) ────────────────────────
+  if (status === 'seated') {
+    const thirtyMinBefore = new Date(reservation.scheduledAt.getTime() - 30 * 60 * 1000);
+    if (now < thirtyMinBefore) {
+      const minutesLeft = Math.ceil((thirtyMinBefore - now) / 60000);
+      return next(new AppError(
+        `Cannot seat yet. Seating opens in ${minutesLeft} minute${minutesLeft !== 1 ? 's' : ''} (30 min before scheduled time).`,
+        400
+      ));
+    }
+  }
+
+  // ── Time-gate: confirmed → no_show (45 min after) ────────────────────────
+  if (status === 'no_show') {
+    const fortyFiveMinAfter = new Date(reservation.scheduledAt.getTime() + 45 * 60 * 1000);
+    if (now < fortyFiveMinAfter) {
+      const minutesLeft = Math.ceil((fortyFiveMinAfter - now) / 60000);
+      return next(new AppError(
+        `Cannot mark No Show yet. Available in ${minutesLeft} minute${minutesLeft !== 1 ? 's' : ''} (45 min after scheduled time).`,
+        400
+      ));
+    }
+  }
+
   reservation.status = status;
+
   if (status === 'cancelled') {
     reservation.cancelledAt = new Date();
     reservation.cancelledBy = 'restaurant';
+    reservation.cancellationReason = cancellationReason || 'Cancelled by admin';
   }
-  await reservation.save({ validateBeforeSave: false });
+
+  // ── Auto-bill on completed ───────────────────────────────────────────────
+  if (status === 'completed' && !reservation.billGeneratedAt) {
+    const systemItems = [];
+    if (reservation.reservationFee > 0) {
+      systemItems.push({ description: 'Reservation Fee', amount: reservation.reservationFee, quantity: 1 });
+    }
+    (reservation.preOrderItems || []).forEach(item => {
+      systemItems.push({ description: item.name, amount: item.price, quantity: item.quantity });
+    });
+    const subTotal = systemItems.reduce((s, i) => s + i.amount * i.quantity, 0);
+    const taxAmount = Math.round(subTotal * 0.05 * 100) / 100;
+    reservation.billItems = systemItems;
+    reservation.billTax = taxAmount;
+    reservation.billTotal = subTotal + taxAmount;
+    reservation.billGeneratedAt = new Date();
+    reservation.billGeneratedBy = req.user.id;
+    reservation.billNotes = 'Auto-generated on completion.';
+  }
+
+  await reservation.save();
   res.status(200).json({ status: 'success', data: { reservation } });
 });
 
@@ -234,7 +294,7 @@ exports.notifyCustomer = catchAsync(async (req, res, next) => {
     `,
   });
 
-  res.status(200).json({ status: 'success', message: `Notification sent to ${customerEmail}` });
+  res.status(200).json({ status: 'success', message: 'Customer has been notified successfully.' });
 });
 
 // ── @GET  /api/admin/menu ─────────────────────────────────────────────────────

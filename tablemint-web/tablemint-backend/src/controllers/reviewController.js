@@ -1,8 +1,8 @@
 'use strict';
-const Review = require('../models/Review');
+const Review      = require('../models/Review');
 const Reservation = require('../models/Reservation');
-const AppError = require('../utils/AppError');
-const catchAsync = require('../utils/catchAsync');
+const AppError    = require('../utils/AppError');
+const catchAsync  = require('../utils/catchAsync');
 const { uploadManyToCloudinary, deleteFromCloudinary } = require('../utils/cloudinary');
 const logger = require('../utils/logger');
 
@@ -29,77 +29,94 @@ exports.getRestaurantReviews = catchAsync(async (req, res, next) => {
 });
 
 // ── @POST /api/reviews ────────────────────────────────────────────────────────
-// Rules:
-//   1. User must have a confirmed OR completed reservation for this restaurant.
-//   2. Files uploaded via multer field "media" (images or videos).
-//   3. Media is uploaded to Cloudinary under tablemint/reviews/<restaurantId>.
-//   4. Unique index on {customer, restaurant} — one review per customer per restaurant.
+// Rules (strictly enforced):
+//   1. The reservation must exist, belong to this customer, and be 'completed'.
+//   2. The reservation's scheduledAt must be in the past.
+//   3. One review per completed booking (unique on {customer, reservation}).
+//   4. rating (1–5) is compulsory.
+//   5. comment is optional but if provided must be ≥10 characters.
+//   6. Up to 5 image files (no videos).
 exports.createReview = catchAsync(async (req, res, next) => {
-  const { restaurantId, rating, title, comment, foodRating, serviceRating, ambienceRating, valueRating } = req.body;
+  const { reservationId, restaurantId, rating, comment, foodRating, serviceRating, ambienceRating } = req.body;
 
-  // ── 1. Validate required fields ───────────────────────────────────────────
-  if (!restaurantId) return next(new AppError('restaurantId is required.', 400));
-  if (!rating)       return next(new AppError('rating is required.', 400));
+  // ── 1. Require both IDs ───────────────────────────────────────────────────
+  if (!reservationId) return next(new AppError('reservationId is required.', 400));
+  if (!restaurantId)  return next(new AppError('restaurantId is required.', 400));
+  if (!rating)        return next(new AppError('Overall rating is required.', 400));
 
-  // ── 2. Confirm the user has a qualifying booking ──────────────────────────
-  //    Accept both 'confirmed' and 'completed' statuses.
-  const qualifyingReservation = await Reservation.findOne({
+  const ratingNum = Number(rating);
+  if (isNaN(ratingNum) || ratingNum < 1 || ratingNum > 5)
+    return next(new AppError('Rating must be a number between 1 and 5.', 400));
+
+  // ── 2. Comment min-length check (client copies this, but enforce server-side) ─
+  if (comment && comment.trim().length > 0 && comment.trim().length < 10)
+    return next(new AppError('Comment must be at least 10 characters if provided.', 400));
+
+  // ── 3. Look up the specific completed reservation ─────────────────────────
+  const reservation = await Reservation.findOne({
+    _id:        reservationId,
     customer:   req.user.id,
     restaurant: restaurantId,
-    status:     { $in: ['confirmed', 'completed'] },
-  }).select('_id status confirmationCode scheduledAt');
+    status:     'completed',   // ONLY completed bookings — not confirmed/seated
+  }).select('_id status scheduledAt confirmationCode');
 
-  if (!qualifyingReservation) {
-    return next(
-      new AppError(
-        'You can only review a restaurant after you have a confirmed or completed booking there.',
-        403
-      )
-    );
+  if (!reservation) {
+    return next(new AppError(
+      'You can only review a restaurant after your visit is marked as Completed. Please ensure the booking exists, belongs to you, and has been completed.',
+      403
+    ));
   }
 
-  // ── 3. Check for duplicate review ─────────────────────────────────────────
-  const existing = await Review.findOne({ customer: req.user.id, restaurant: restaurantId });
+  // ── 4. Visit date must be in the past ────────────────────────────────────
+  if (new Date(reservation.scheduledAt) > new Date()) {
+    return next(new AppError('You cannot review a future booking.', 400));
+  }
+
+  // ── 5. One review per booking ─────────────────────────────────────────────
+  const existing = await Review.findOne({ customer: req.user.id, reservation: reservationId });
   if (existing) {
-    return next(new AppError('You have already reviewed this restaurant. You can edit your existing review instead.', 409));
+    return next(new AppError('You have already submitted a review for this visit.', 409));
   }
 
-  // ── 4. Upload media files to Cloudinary (if any) ──────────────────────────
-  let mediaArray = [];
+  // ── 6. Upload images to Cloudinary (images only, max 5) ──────────────────
+  let reviewImages = [];
   if (req.files && req.files.length > 0) {
+    if (req.files.length > 5)
+      return next(new AppError('Maximum 5 photos allowed per review.', 400));
+
+    // Reject non-image files
+    const nonImage = req.files.find(f => !f.mimetype.startsWith('image/'));
+    if (nonImage)
+      return next(new AppError('Only image files (JPEG, PNG, WebP, etc.) are allowed.', 400));
+
     const folder = `tablemint/reviews/${restaurantId}`;
     try {
       const uploaded = await uploadManyToCloudinary(
-        req.files.map((f) => ({ buffer: f.buffer, mimetype: f.mimetype, originalname: f.originalname })),
+        req.files.map(f => ({ buffer: f.buffer, mimetype: f.mimetype, originalname: f.originalname })),
         { folder }
       );
-      mediaArray = uploaded.map((r) => ({
-        url:          r.url,
-        publicId:     r.publicId,
-        resourceType: r.resourceType === 'video' ? 'video' : 'image',
-      }));
+      reviewImages = uploaded.map(r => ({ url: r.url, publicId: r.publicId }));
     } catch (err) {
-      logger.error('[Cloudinary] Review media upload failed:', err);
-      return next(new AppError('Failed to upload media. Please try again.', 502));
+      logger.error('[Cloudinary] Review image upload failed:', err);
+      return next(new AppError('Failed to upload photos. Please try again.', 502));
     }
   }
 
-  // ── 5. Create the review ──────────────────────────────────────────────────
+  // ── 7. Create the review ──────────────────────────────────────────────────
   const review = await Review.create({
     customer:      req.user.id,
     restaurant:    restaurantId,
-    reservation:   qualifyingReservation._id,
-    rating:        Number(rating),
-    title,
-    comment,
+    reservation:   reservationId,
+    rating:        ratingNum,
+    comment:       comment?.trim() || undefined,
     foodRating:    foodRating    ? Number(foodRating)    : undefined,
     serviceRating: serviceRating ? Number(serviceRating) : undefined,
     ambienceRating:ambienceRating? Number(ambienceRating): undefined,
-    valueRating:   valueRating   ? Number(valueRating)   : undefined,
-    media:         mediaArray,
+    reviewImages,
+    visitDate:     reservation.scheduledAt,
   });
 
-  logger.info(`[Review] Created by user ${req.user.id} for restaurant ${restaurantId} with ${mediaArray.length} media file(s).`);
+  logger.info(`[Review] Created by user ${req.user.id} for restaurant ${restaurantId} | booking ${reservationId} | ${reviewImages.length} image(s).`);
 
   res.status(201).json({
     status: 'success',
@@ -108,65 +125,61 @@ exports.createReview = catchAsync(async (req, res, next) => {
 });
 
 // ── @PATCH /api/reviews/:id ───────────────────────────────────────────────────
-// Allows updating text fields and adding/removing media items.
 exports.updateReview = catchAsync(async (req, res, next) => {
   const review = await Review.findById(req.params.id);
   if (!review) return next(new AppError('Review not found.', 404));
 
-  if (review.customer.toString() !== req.user.id) {
+  if (review.customer.toString() !== req.user.id)
     return next(new AppError('You can only edit your own reviews.', 403));
-  }
 
-  // Update text fields
-  const textFields = ['rating', 'title', 'comment', 'foodRating', 'serviceRating', 'ambienceRating', 'valueRating'];
-  textFields.forEach((field) => {
+  // Comment min-length validation
+  if (req.body.comment !== undefined && req.body.comment.trim().length > 0 && req.body.comment.trim().length < 10)
+    return next(new AppError('Comment must be at least 10 characters if provided.', 400));
+
+  const textFields = ['rating', 'comment', 'foodRating', 'serviceRating', 'ambienceRating'];
+  textFields.forEach(field => {
     if (req.body[field] !== undefined) review[field] = req.body[field];
   });
 
-  // ── Add new media files if provided ──────────────────────────────────────
+  // ── Add new image files ───────────────────────────────────────────────────
   if (req.files && req.files.length > 0) {
-    const currentCount = review.media.length;
-    const maxMedia = 5;
-    const slotsLeft = maxMedia - currentCount;
-    if (slotsLeft <= 0) {
-      return next(new AppError(`Maximum of ${maxMedia} media items allowed per review. Delete some first.`, 400));
-    }
+    const currentCount = review.reviewImages.length;
+    const maxImages    = 5;
+    const slotsLeft    = maxImages - currentCount;
+    if (slotsLeft <= 0)
+      return next(new AppError(`Maximum of ${maxImages} photos allowed per review. Remove some first.`, 400));
 
     const filesToUpload = req.files.slice(0, slotsLeft);
+    const nonImage      = filesToUpload.find(f => !f.mimetype.startsWith('image/'));
+    if (nonImage) return next(new AppError('Only image files are allowed.', 400));
+
     const folder = `tablemint/reviews/${review.restaurant}`;
     try {
       const uploaded = await uploadManyToCloudinary(
-        filesToUpload.map((f) => ({ buffer: f.buffer, mimetype: f.mimetype, originalname: f.originalname })),
+        filesToUpload.map(f => ({ buffer: f.buffer, mimetype: f.mimetype, originalname: f.originalname })),
         { folder }
       );
       for (const r of uploaded) {
-        review.media.push({
-          url:          r.url,
-          publicId:     r.publicId,
-          resourceType: r.resourceType === 'video' ? 'video' : 'image',
-        });
+        review.reviewImages.push({ url: r.url, publicId: r.publicId });
       }
     } catch (err) {
-      logger.error('[Cloudinary] Review media update upload failed:', err);
-      return next(new AppError('Failed to upload new media. Please try again.', 502));
+      logger.error('[Cloudinary] Review image update failed:', err);
+      return next(new AppError('Failed to upload photos. Please try again.', 502));
     }
   }
 
-  // ── Remove specific media items by publicId ───────────────────────────────
-  // Client sends: { removeMedia: ["publicId1", "publicId2"] }
-  if (req.body.removeMedia && Array.isArray(req.body.removeMedia)) {
-    for (const pid of req.body.removeMedia) {
-      const idx = review.media.findIndex((m) => m.publicId === pid);
+  // ── Remove specific images by publicId ───────────────────────────────────
+  if (req.body.removeImages && Array.isArray(req.body.removeImages)) {
+    for (const pid of req.body.removeImages) {
+      const idx = review.reviewImages.findIndex(m => m.publicId === pid);
       if (idx !== -1) {
-        const resourceType = review.media[idx].resourceType || 'image';
-        await deleteFromCloudinary(pid, resourceType);
-        review.media.splice(idx, 1);
+        await deleteFromCloudinary(pid, 'image');
+        review.reviewImages.splice(idx, 1);
       }
     }
   }
 
   await review.save();
-
   res.status(200).json({ status: 'success', data: { review } });
 });
 
@@ -175,64 +188,70 @@ exports.deleteReview = catchAsync(async (req, res, next) => {
   const review = await Review.findById(req.params.id);
   if (!review) return next(new AppError('Review not found.', 404));
 
-  if (req.user.role !== 'admin' && review.customer.toString() !== req.user.id) {
+  if (req.user.role !== 'admin' && review.customer.toString() !== req.user.id)
     return next(new AppError('You are not authorized to delete this review.', 403));
-  }
 
-  // Clean up Cloudinary assets
-  for (const item of review.media) {
-    await deleteFromCloudinary(item.publicId, item.resourceType || 'image');
+  for (const item of review.reviewImages) {
+    await deleteFromCloudinary(item.publicId, 'image');
   }
 
   await Review.findByIdAndDelete(req.params.id);
-
   res.status(204).send();
 });
 
-// ── @POST /api/reviews/:id/respond (admin / restaurant owner) ─────────────────
+// ── @POST /api/reviews/:id/respond ───────────────────────────────────────────
 exports.respondToReview = catchAsync(async (req, res, next) => {
   const review = await Review.findById(req.params.id).populate('restaurant', 'owner');
   if (!review) return next(new AppError('Review not found.', 404));
 
-  if (
-    req.user.role !== 'admin' &&
-    review.restaurant.owner.toString() !== req.user.id
-  ) {
+  if (req.user.role !== 'admin' && review.restaurant.owner.toString() !== req.user.id)
     return next(new AppError('You are not authorized to respond to this review.', 403));
-  }
 
-  review.restaurantResponse = {
-    text:        req.body.text,
-    respondedAt: new Date(),
-  };
+  review.restaurantResponse = { text: req.body.text, respondedAt: new Date() };
   await review.save();
 
   res.status(200).json({ status: 'success', data: { review } });
 });
 
-// ── @GET /api/reviews/check-eligibility?restaurantId= ────────────────────────
-// Lets the frontend know whether the logged-in user is eligible to leave a review
-// and whether they already have one, before showing the review form.
+// ── @GET /api/reviews/check-eligibility ──────────────────────────────────────
+// Returns all completed bookings for a restaurant, each indicating whether a
+// review has already been submitted for that specific booking.
 exports.checkReviewEligibility = catchAsync(async (req, res, next) => {
   const { restaurantId } = req.query;
   if (!restaurantId) return next(new AppError('restaurantId query param is required.', 400));
 
-  const [reservation, existingReview] = await Promise.all([
-    Reservation.findOne({
-      customer:   req.user.id,
-      restaurant: restaurantId,
-      status:     { $in: ['confirmed', 'completed'] },
-    }).select('_id status confirmationCode scheduledAt'),
-    Review.findOne({ customer: req.user.id, restaurant: restaurantId }).select('_id rating createdAt'),
-  ]);
+  const now = new Date();
+
+  // All completed, past-dated bookings for this customer at this restaurant
+  const completedBookings = await Reservation.find({
+    customer:   req.user.id,
+    restaurant: restaurantId,
+    status:     'completed',
+    scheduledAt: { $lt: now },
+  }).select('_id scheduledAt confirmationCode status');
+
+  // Check which bookings already have a review
+  const reviewedReservationIds = await Review.find({
+    customer:    req.user.id,
+    restaurant:  restaurantId,
+    reservation: { $in: completedBookings.map(b => b._id) },
+  }).distinct('reservation');
+
+  const reviewedSet = new Set(reviewedReservationIds.map(id => id.toString()));
+
+  const bookingsWithEligibility = completedBookings.map(b => ({
+    reservationId:    b._id,
+    confirmationCode: b.confirmationCode,
+    scheduledAt:      b.scheduledAt,
+    status:           b.status,
+    hasReview:        reviewedSet.has(b._id.toString()),
+  }));
 
   res.status(200).json({
     status: 'success',
     data: {
-      hasQualifyingBooking: !!reservation,
-      reservation:          reservation || null,
-      hasExistingReview:    !!existingReview,
-      existingReview:       existingReview || null,
+      hasAnyEligibleBooking: bookingsWithEligibility.some(b => !b.hasReview),
+      bookings: bookingsWithEligibility,
     },
   });
 });

@@ -195,3 +195,40 @@
 {"level":"error","message":"401 - Invalid email or password. - /api/auth/login","timestamp":"2026-04-10 21:23:10"}
 {"level":"info","message":"Email sent: <042895af-f3ca-b1fc-a00c-8179fdb8cc29@tablemint.com>","timestamp":"2026-04-10 21:23:23"}
 {"level":"error","message":"401 - Invalid email or password. - /api/auth/login","timestamp":"2026-04-10 21:26:25"}
+{"level":"error","message":"403 - You can only review a restaurant after you have a confirmed or completed booking there. - /api/reviews","timestamp":"2026-04-11 08:00:34"}
+{"level":"info","message":"[Review] Created by user 69d859a82a6a4c753a24e221 for restaurant 69d634cfded435e2608b932f with 1 media file(s).","timestamp":"2026-04-11 08:01:15"}
+{"level":"error","message":"403 - You can only review a restaurant after you have a confirmed or completed booking there. - /api/reviews","timestamp":"2026-04-11 08:01:53"}
+{"level":"error","message":"401 - Invalid email or password. - /api/auth/login","timestamp":"2026-04-11 08:18:21"}
+{"level":"error","message":"401 - Invalid email or password. - /api/auth/login","timestamp":"2026-04-11 08:18:28"}
+{"level":"info","message":"Email sent: <d4b01d07-200a-991d-3a5d-3d8a7b754d9f@tablemint.com>","timestamp":"2026-04-11 08:21:41"}
+{"level":"info","message":"Email sent: <684737e3-4042-03d2-a28a-523ae1195503@tablemint.com>","timestamp":"2026-04-11 08:30:24"}
+{"level":"info","message":"Email sent: <94f3b56c-f54e-5189-09c6-c8a5767dc2f0@tablemint.com>","timestamp":"2026-04-11 08:36:51"}
+{"level":"info","message":"Email sent: <ca81c8e8-90d5-1c9d-6879-9b2812e15f7b@tablemint.com>","timestamp":"2026-04-11 08:37:22"}
+{"level":"info","message":"Email sent: <e3a6a843-2226-1284-f95f-cc9c0d7a9525@tablemint.com>","timestamp":"2026-04-11 08:39:20"}
+{"level":"info","message":"[Review] Created by user 69d859a82a6a4c753a24e221 for restaurant 69d865de240d3bae8d2b7044 with 1 media file(s).","timestamp":"2026-04-11 08:53:09"}
+{"level":"error","message":"409 - You have already reviewed this restaurant. You can edit your existing review instead. - /api/reviews","timestamp":"2026-04-11 09:23:06"}
+{"level":"error","message":"404 - Route /api/api/reservations/my not found. - /api/api/reservations/my","timestamp":"2026-04-11 10:07:21"}
+{"level":"error","message":"404 - Route /api/api/reservations/my?limit=1 not found. - /api/api/reservations/my?limit=1","timestamp":"2026-04-11 10:07:21"}
+{"level":"error","message":"404 - Route /api/api/reservations/my not found. - /api/api/reservations/my","timestamp":"2026-04-11 10:07:21"}
+{"level":"error","message":"404 - Route /api/api/reservations/my?limit=1 not found. - /api/api/reservations/my?limit=1","timestamp":"2026-04-11 10:07:21"}
+{"level":"error","message":"404 - Route /api/api/reservations/my not found. - /api/api/reservations/my","timestamp":"2026-04-11 10:07:48"}
+{"level":"error","message":"404 - Route /api/api/reservations/my?limit=1 not found. - /api/api/reservations/my?limit=1","timestamp":"2026-04-11 10:07:48"}
+{"level":"error","message":"404 - Route /api/api/reservations/my not found. - /api/api/reservations/my","timestamp":"2026-04-11 10:07:48"}
+{"level":"error","message":"404 - Route /api/api/reservations/my?limit=1 not found. - /api/api/reservations/my?limit=1","timestamp":"2026-04-11 10:07:48"}
+{"level":"info","message":"Email sent: <fc1cd2b9-af88-e55d-c2cf-aaee6059c181@tablemint.com>","timestamp":"2026-04-11 10:08:52"}
+{"level":"error","message":"404 - Route /api/api/reservations/my not found. - /api/api/reservations/my","timestamp":"2026-04-11 10:09:28"}
+{"level":"error","message":"404 - Route /api/api/reservations/my?limit=1 not found. - /api/api/reservations/my?limit=1","timestamp":"2026-04-11 10:09:28"}
+{"level":"error","message":"404 - Route /api/api/reservations/my not found. - /api/api/reservations/my","timestamp":"2026-04-11 10:09:28"}
+{"level":"error","message":"404 - Route /api/api/reservations/my?limit=1 not found. - /api/api/reservations/my?limit=1","timestamp":"2026-04-11 10:09:28"}
+{"level":"error","message":"404 - Route /api/api/reservations/my not found. - /api/api/reservations/my","timestamp":"2026-04-11 10:09:34"}
+{"level":"error","message":"404 - Route /api/api/reservations/my not found. - /api/api/reservations/my","timestamp":"2026-04-11 10:09:34"}
+{"level":"info","message":"Email sent: <d7d8253d-c6aa-9d0c-89d4-fdd5118fe55d@tablemint.com>","timestamp":"2026-04-11 10:09:50"}
+{"level":"error","message":"404 - Route /api/api/reservations/my not found. - /api/api/reservations/my","timestamp":"2026-04-11 10:09:55"}
+{"level":"error","message":"404 - Route /api/api/reservations/my?limit=1 not found. - /api/api/reservations/my?limit=1","timestamp":"2026-04-11 10:09:55"}
+{"level":"error","message":"404 - Route /api/api/reservations/my not found. - /api/api/reservations/my","timestamp":"2026-04-11 10:09:55"}
+{"level":"error","message":"404 - Route /api/api/reservations/my?limit=1 not found. - /api/api/reservations/my?limit=1","timestamp":"2026-04-11 10:09:55"}
+{"level":"error","message":"404 - Route /api/api/reservations/my not found. - /api/api/reservations/my","timestamp":"2026-04-11 10:11:56"}
+{"level":"info","message":"Email sent: <eadae43b-41b4-b9bb-8f00-debe4428c758@tablemint.com>","timestamp":"2026-04-11 10:40:22"}
+{"level":"info","message":"Email sent: <70b5e643-4e3f-f0a8-64de-d77c5723fe25@tablemint.com>","timestamp":"2026-04-11 10:41:31"}
+{"level":"info","message":"Email sent: <7e41eccd-d80b-2576-21b0-2b9d437ef026@tablemint.com>","timestamp":"2026-04-11 10:52:52"}
+{"level":"info","message":"[Payment] Reservation 69d9daa8f2c477f48c0e242d marked as \"paid\" by 69d859a82a6a4c753a24e221","timestamp":"2026-04-11 10:55:47"}

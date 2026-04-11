@@ -9,6 +9,19 @@ const preOrderItemSchema = new mongoose.Schema({
     quantity: { type: Number, required: true, min: 1 },
 });
 
+const billItemSchema = new mongoose.Schema({
+    description: { type: String, required: true },
+    amount:      { type: Number, required: true },
+    quantity:    { type: Number, default: 1 },
+});
+
+const notificationLogSchema = new mongoose.Schema({
+    sentAt:   { type: Date, default: Date.now },
+    sentBy:   { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    message:  { type: String, required: true },
+    channel:  { type: String, enum: ['email', 'sms', 'push'], default: 'email' },
+});
+
 const reservationSchema = new mongoose.Schema(
     {
         // ── References ──────────────────────────────────────────────────────────
@@ -24,7 +37,7 @@ const reservationSchema = new mongoose.Schema(
         },
         table: {
             type: mongoose.Schema.Types.ObjectId,
-            default: null, // Assigned by captain or system
+            default: null,
         },
         assignedCaptain: {
             type: mongoose.Schema.Types.ObjectId,
@@ -45,7 +58,6 @@ const reservationSchema = new mongoose.Schema(
             type: Date,
             required: true,
         },
-        // For instant: arrival in X minutes from creation
         arrivalInMinutes: {
             type: Number,
             default: null,
@@ -64,7 +76,7 @@ const reservationSchema = new mongoose.Schema(
         },
 
         // ── Status lifecycle ─────────────────────────────────────────────────────
-        // pending → confirmed → seated → completed | cancelled
+        // pending → confirmed → seated → completed | cancelled | no_show
         status: {
             type: String,
             enum: ['pending', 'confirmed', 'seated', 'completed', 'cancelled', 'no_show'],
@@ -117,6 +129,19 @@ const reservationSchema = new mongoose.Schema(
             default: null,
         },
 
+        // ── Customer message (sent after confirmation) ───────────────────────────
+        // Customer can send one special message/request to the restaurant after their
+        // reservation is confirmed. Stored here, visible to restaurant staff.
+        customerMessage: {
+            type: String,
+            maxlength: [600, 'Message cannot exceed 600 characters'],
+            default: null,
+        },
+        customerMessageSentAt: {
+            type: Date,
+            default: null,
+        },
+
         // ── Internal captain notes ────────────────────────────────────────────────
         captainNotes: {
             type: String,
@@ -134,6 +159,38 @@ const reservationSchema = new mongoose.Schema(
             type: Boolean,
             default: false,
         },
+
+        // ── Admin notification log ───────────────────────────────────────────────
+        // Tracks every "Notify Customer" action the admin/owner performs.
+        notificationLog: [notificationLogSchema],
+
+        // ── Bill fields ──────────────────────────────────────────────────────────
+        // Populated when admin marks the visit as completed and generates a bill.
+        billItems: [billItemSchema],
+        billGeneratedAt: {
+            type: Date,
+            default: null,
+        },
+        billGeneratedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            default: null,
+        },
+        // Grand total computed at bill generation (may differ from totalAmount
+        // which is pre-computed from pre-order only).
+        billTotal: {
+            type: Number,
+            default: 0,
+        },
+        // Tax (GST etc.) stored separately for transparency
+        billTax: {
+            type: Number,
+            default: 0,
+        },
+        billNotes: {
+            type: String,
+            default: null,
+        },
     },
     {
         timestamps: true,
@@ -146,7 +203,6 @@ const reservationSchema = new mongoose.Schema(
 reservationSchema.index({ customer: 1, createdAt: -1 });
 reservationSchema.index({ restaurant: 1, scheduledAt: 1 });
 reservationSchema.index({ restaurant: 1, status: 1 });
-// Note: confirmationCode index already created by unique:true in the schema field above
 reservationSchema.index({ assignedCaptain: 1, status: 1 });
 reservationSchema.index({ scheduledAt: 1, status: 1 });
 
@@ -155,20 +211,30 @@ reservationSchema.pre('save', function (next) {
     if (this.isNew && !this.confirmationCode) {
         this.confirmationCode = Math.random().toString(36).substring(2, 8).toUpperCase();
     }
-
-    // Calculate totals
     this.preOrderTotal = this.preOrderItems.reduce(
         (sum, item) => sum + item.price * item.quantity,
         0
     );
     this.totalAmount = this.reservationFee + this.preOrderTotal;
-
     next();
 });
 
 // ─── Virtual: is the reservation upcoming? ────────────────────────────────────
 reservationSchema.virtual('isUpcoming').get(function () {
     return this.scheduledAt > new Date() && ['pending', 'confirmed'].includes(this.status);
+});
+
+// ─── Virtual: can transition to "seated"? (≥30 min before booking time) ──────
+// Admin/owner/captain can seat a customer starting 30 minutes before scheduled time.
+reservationSchema.virtual('canSeat').get(function () {
+    const thirtyMinBefore = new Date(this.scheduledAt.getTime() - 30 * 60 * 1000);
+    return new Date() >= thirtyMinBefore && this.status === 'confirmed';
+});
+
+// ─── Virtual: can mark as "no_show"? (≥45 min after booking time) ─────────────
+reservationSchema.virtual('canMarkNoShow').get(function () {
+    const fortyFiveMinAfter = new Date(this.scheduledAt.getTime() + 45 * 60 * 1000);
+    return new Date() >= fortyFiveMinAfter && this.status === 'confirmed';
 });
 
 module.exports = mongoose.model('Reservation', reservationSchema);
