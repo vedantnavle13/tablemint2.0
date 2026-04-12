@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from './context/AuthContext';
 import { apiCall } from './services/api';
+import AdminInsights from './components/AdminInsights';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const C = {
@@ -11,7 +12,7 @@ const C = {
   green: "#4A9B6F", red: "#D05A4A", blue: "#4A7B9D",
 };
 
-const TABS = ["Dashboard", "Reservations", "Menu", "Tables", "Analytics"];
+const TABS = ["Dashboard", "Reservations", "Menu", "Tables", "Analytics", "Reviews"];
 
 // ── Utils ─────────────────────────────────────────────────────────────────────
 const fmtTime = d => d ? new Date(d).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "—";
@@ -207,6 +208,7 @@ function DashboardTab({ user, onTabChange }) {
           { icon: "🍽️", title: "Menu", desc: "Add / edit / delete items", tab: "Menu" },
           { icon: "🪑", title: "Tables", desc: "Manage table layout", tab: "Tables" },
           { icon: "📊", title: "Analytics", desc: "Restaurant stats", tab: "Analytics" },
+          { icon: "⭐", title: "Reviews & AI", desc: "ML sentiment insights", tab: "Reviews" },
         ].map(a => (
           <div key={a.title} onClick={() => onTabChange(a.tab)}
             style={{ background: C.bgCard, padding: 24, borderRadius: 16, border: `1.5px solid ${C.border}`, cursor: "pointer", transition: "all 0.2s" }}
@@ -701,6 +703,46 @@ function TablesTab() {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+// ── REVIEWS TAB (ML Insights) ─────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+function ReviewsTab() {
+  const [restaurantId, setRestaurantId]   = useState(null);
+  const [restaurantName, setRestaurantName] = useState('');
+  const [loading, setLoading]             = useState(true);
+
+  useEffect(() => {
+    apiCall('/admin/my-restaurant')
+      .then(res => {
+        const r = res.data?.restaurant || res.data;
+        setRestaurantId(r?._id || null);
+        setRestaurantName(r?.name || '');
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <Spinner text="Loading restaurant…" />;
+
+  if (!restaurantId) {
+    return <Empty icon="🏚️" title="No restaurant assigned." sub="Contact a super-admin to assign a restaurant to your account." />;
+  }
+
+  return (
+    <>
+      <div style={{ marginBottom: 28 }}>
+        <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+          ⭐ Reviews &amp; AI Insights
+        </h2>
+        <p style={{ color: C.textMuted, fontSize: 13 }}>
+          ML-powered sentiment analysis from customer reviews for · <strong>{restaurantName}</strong>.
+        </p>
+      </div>
+      <AdminInsights restaurantId={restaurantId} restaurantName={restaurantName} />
+    </>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 // ── ANALYTICS TAB ─────────────────────────────────────────────────────────────
 // ════════════════════════════════════════════════════════════════════════════
 function AnalyticsTab() {
@@ -816,6 +858,7 @@ export default function Dashboard() {
         {activeTab === "Menu"         && <MenuTab />}
         {activeTab === "Tables"       && <TablesTab />}
         {activeTab === "Analytics"    && <AnalyticsTab />}
+        {activeTab === "Reviews"      && <ReviewsTab />}
       </div>
     </div>
   );

@@ -13,6 +13,10 @@ router.use(protect);
 // GET /api/reviews/check-eligibility?restaurantId=<id>
 router.get('/check-eligibility', restrictTo('customer'), reviewController.checkReviewEligibility);
 
+// ── GET my submitted reviews (used to pre-seed reviewedIds on AccountPage load)
+// GET /api/reviews/my
+router.get('/my', restrictTo('customer'), reviewController.getMyReviews);
+
 // ── Create a review (with optional media upload) ──────────────────────────────
 // POST /api/reviews
 // field name: "media" (multipart/form-data), max 5 files (images + videos)

@@ -16,7 +16,8 @@ router.get('/nearby', rc.getNearbyRestaurants);
 router.get('/my/all', protect, restrictTo('admin', 'owner'), rc.getMyRestaurants);
 
 router.get('/:id/menu', rc.getMenu);
-router.get('/:restaurantId/reviews', reviewController.getRestaurantReviews);
+router.get('/:restaurantId/reviews',   reviewController.getRestaurantReviews);
+router.get('/:restaurantId/insights',  reviewController.getRestaurantInsights);
 router.get('/:id', rc.getRestaurant); // ← parameterized — always last among GETs
 
 // ─── Protected routes ──────────────────────────────────────────────────────

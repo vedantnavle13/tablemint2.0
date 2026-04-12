@@ -1,10 +1,38 @@
 'use strict';
+const axios       = require('axios');
 const Review      = require('../models/Review');
 const Reservation = require('../models/Reservation');
 const AppError    = require('../utils/AppError');
 const catchAsync  = require('../utils/catchAsync');
 const { uploadManyToCloudinary, deleteFromCloudinary } = require('../utils/cloudinary');
 const logger = require('../utils/logger');
+
+const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:5001';
+
+/**
+ * triggerSentimentAnalysis
+ * Fire-and-forget: calls the Python ML service and patches the review.
+ * Errors are caught and logged — they never propagate to the caller.
+ */
+const triggerSentimentAnalysis = (reviewId, text) => {
+  if (!text || text.trim().length === 0) return; // no comment to analyse
+
+  axios
+    .post(`${ML_SERVICE_URL}/analyze-single`, { text }, { timeout: 15000 })
+    .then(async ({ data }) => {
+      // Python service returns snake_case: sentiment_label, sentiment_score, aspects
+      await Review.findByIdAndUpdate(reviewId, {
+        sentimentLabel: data.sentiment_label || null,
+        sentimentScore: data.sentiment_score ?? null,
+        aspects:        Array.isArray(data.aspects) ? data.aspects : [],
+        isProcessed:    true,
+      });
+      logger.info(`[ML] Sentiment saved for review ${reviewId}: ${data.sentiment_label}`);
+    })
+    .catch((err) => {
+      logger.warn(`[ML] Sentiment analysis failed for review ${reviewId}: ${err.message}`);
+    });
+};
 
 // ── @GET /api/restaurants/:restaurantId/reviews ───────────────────────────────
 exports.getRestaurantReviews = catchAsync(async (req, res, next) => {
@@ -24,6 +52,21 @@ exports.getRestaurantReviews = catchAsync(async (req, res, next) => {
     status: 'success',
     total,
     totalPages: Math.ceil(total / parseInt(limit)),
+    data: { reviews },
+  });
+});
+
+// ── @GET /api/reviews/my ──────────────────────────────────────────────────────
+// Returns all reviews submitted by the current customer.
+// Used by AccountPage to pre-seed reviewedIds (so Write Review is hidden
+// for bookings that already have a review, even after a page refresh).
+exports.getMyReviews = catchAsync(async (req, res, next) => {
+  const reviews = await Review.find({ customer: req.user.id })
+    .select('reservation restaurant rating createdAt sentimentLabel')
+    .lean();
+
+  res.status(200).json({
+    status: 'success',
     data: { reviews },
   });
 });
@@ -103,20 +146,34 @@ exports.createReview = catchAsync(async (req, res, next) => {
   }
 
   // ── 7. Create the review ──────────────────────────────────────────────────
-  const review = await Review.create({
-    customer:      req.user.id,
-    restaurant:    restaurantId,
-    reservation:   reservationId,
-    rating:        ratingNum,
-    comment:       comment?.trim() || undefined,
-    foodRating:    foodRating    ? Number(foodRating)    : undefined,
-    serviceRating: serviceRating ? Number(serviceRating) : undefined,
-    ambienceRating:ambienceRating? Number(ambienceRating): undefined,
-    reviewImages,
-    visitDate:     reservation.scheduledAt,
-  });
+  let review;
+  try {
+    review = await Review.create({
+      customer:      req.user.id,
+      restaurant:    restaurantId,
+      reservation:   reservationId,
+      rating:        ratingNum,
+      comment:       comment?.trim() || undefined,
+      foodRating:    foodRating    ? Number(foodRating)    : undefined,
+      serviceRating: serviceRating ? Number(serviceRating) : undefined,
+      ambienceRating:ambienceRating? Number(ambienceRating): undefined,
+      reviewImages,
+      visitDate:     reservation.scheduledAt,
+    });
+  } catch (createErr) {
+    // E11000 = MongoDB duplicate key — surface a meaningful message
+    if (createErr.code === 11000) {
+      return next(new AppError('You have already submitted a review for this visit.', 409));
+    }
+    throw createErr; // re-throw anything else to the global error handler
+  }
 
   logger.info(`[Review] Created by user ${req.user.id} for restaurant ${restaurantId} | booking ${reservationId} | ${reviewImages.length} image(s).`);
+
+  // ── Fire-and-forget ML sentiment analysis — customer does NOT wait for this ──
+  if (review.comment) {
+    triggerSentimentAnalysis(review._id.toString(), review.comment);
+  }
 
   res.status(201).json({
     status: 'success',
@@ -255,3 +312,123 @@ exports.checkReviewEligibility = catchAsync(async (req, res, next) => {
     },
   });
 });
+
+// ── @GET /api/restaurants/:restaurantId/insights ──────────────────────────────
+// Returns aggregated sentiment stats, star averages, aspect chips, and recent
+// negative reviews. No auth required (public).
+exports.getRestaurantInsights = catchAsync(async (req, res, next) => {
+  const { restaurantId } = req.params;
+
+  // 1. Parallel fetch: total review count + processed reviews + star averages
+  const [totalAll, processedReviews, starAgg] = await Promise.all([
+    // All reviews (processed + not) — for the Total Reviews stat
+    Review.countDocuments({ restaurant: restaurantId, isVisible: true }),
+
+    // Only ML-processed reviews — for sentiment stats / aspects
+    Review.find({ restaurant: restaurantId, isVisible: true, isProcessed: true })
+      .populate('customer', 'name')
+      .lean(),
+
+    // Star averages across ALL reviews (not just processed)
+    Review.aggregate([
+      { $match: { restaurant: require('mongoose').Types.ObjectId.createFromHexString(restaurantId) } },
+      { $group: {
+        _id: null,
+        avgFood:     { $avg: '$foodRating' },
+        avgService:  { $avg: '$serviceRating' },
+        avgAmbience: { $avg: '$ambienceRating' },
+        avgOverall:  { $avg: '$rating' },
+      }},
+    ]),
+  ]);
+
+  const processedTotal = processedReviews.length;
+
+  // 2. Star averages (round to 1 decimal)
+  const agg = starAgg[0] || {};
+  const starAverages = {
+    food:     agg.avgFood     ? +agg.avgFood.toFixed(1)     : null,
+    service:  agg.avgService  ? +agg.avgService.toFixed(1)  : null,
+    ambience: agg.avgAmbience ? +agg.avgAmbience.toFixed(1) : null,
+    overall:  agg.avgOverall  ? +agg.avgOverall.toFixed(1)  : null,
+  };
+
+  // 3. Early return if no processed reviews yet
+  if (processedTotal === 0) {
+    return res.status(200).json({
+      status: 'success',
+      data: {
+        total:           totalAll,
+        processedTotal:  0,
+        positivePercent: 0,
+        negativePercent: 0,
+        neutralPercent:  0,
+        starAverages,
+        topAspects:      [],
+        negativeReviews: [],
+      },
+    });
+  }
+
+  // 4. Count sentiment labels
+  let positive = 0, negative = 0, neutral = 0;
+  for (const r of processedReviews) {
+    if      (r.sentimentLabel === 'POSITIVE') positive++;
+    else if (r.sentimentLabel === 'NEGATIVE') negative++;
+    else                                      neutral++;
+  }
+
+  const positivePercent = Math.round((positive / processedTotal) * 100);
+  const negativePercent = Math.round((negative / processedTotal) * 100);
+  const neutralPercent  = Math.round((neutral  / processedTotal) * 100);
+
+  // 5. Aggregate aspects across all processed reviews
+  const aspectMap = {};
+  for (const r of processedReviews) {
+    if (Array.isArray(r.aspects)) {
+      for (const a of r.aspects) {
+        const key = (a.aspect || '').toLowerCase().trim();
+        if (!key) continue;
+        if (!aspectMap[key]) aspectMap[key] = { POSITIVE: 0, NEGATIVE: 0, NEUTRAL: 0, total: 0 };
+        aspectMap[key][a.sentiment] = (aspectMap[key][a.sentiment] || 0) + 1;
+        aspectMap[key].total += 1;
+      }
+    }
+  }
+  const topAspects = Object.entries(aspectMap)
+    .sort((a, b) => b[1].total - a[1].total)
+    .slice(0, 10)
+    .map(([aspect, data]) => ({
+      aspect,
+      total:           data.total,
+      positivePercent: Math.round((data.POSITIVE / data.total) * 100),
+      negativePercent: Math.round((data.NEGATIVE / data.total) * 100),
+    }));
+
+  // 6. 5 most recent NEGATIVE reviews
+  const negativeReviews = processedReviews
+    .filter(r => r.sentimentLabel === 'NEGATIVE')
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, 5)
+    .map(r => ({
+      text:           r.comment || '',
+      createdAt:      r.createdAt,
+      sentimentScore: r.sentimentScore ?? null,
+      userName:       r.customer?.name || 'Anonymous',
+    }));
+
+  res.status(200).json({
+    status: 'success',
+    data: {
+      total:           totalAll,
+      processedTotal,
+      positivePercent,
+      negativePercent,
+      neutralPercent,
+      starAverages,
+      topAspects,
+      negativeReviews,
+    },
+  });
+});
+

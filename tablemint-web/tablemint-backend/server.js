@@ -89,8 +89,26 @@ setInterval(() => {
 }, 14 * 60 * 1000);
 
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => {
+  .then(async () => {
     console.log('✅ MongoDB connected successfully');
+
+    // ── One-time migration: drop stale unique index customer_1_restaurant_1 ──
+    // This index was created early in development and incorrectly blocked
+    // customers from reviewing the same restaurant more than once.
+    // The correct unique index is { customer, reservation } (one per booking).
+    try {
+      const reviewColl = mongoose.connection.db.collection('reviews');
+      const indexes    = await reviewColl.indexes();
+      const stale      = indexes.find(idx => idx.name === 'customer_1_restaurant_1');
+      if (stale) {
+        await reviewColl.dropIndex('customer_1_restaurant_1');
+        console.log('🧹 Dropped stale index customer_1_restaurant_1 from reviews');
+      }
+    } catch (migrateErr) {
+      // Non-fatal — log and continue
+      console.warn('⚠️  Could not drop stale review index:', migrateErr.message);
+    }
+
     const PORT = process.env.PORT || 5000;
     httpServer.listen(PORT, () => {   // ← httpServer, not app.listen
       console.log(`🚀 Server running on port ${PORT}`);

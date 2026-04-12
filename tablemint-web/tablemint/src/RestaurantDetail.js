@@ -4,6 +4,7 @@ import axios from "axios";
 import { useAuth } from "./context/AuthContext";
 import Navbar from "./Navbar";
 import ShareToGroupModal from "./components/ShareToGroupModal";
+import RestaurantInsights from "./components/RestaurantInsights";
 
 
 const C = {
@@ -121,6 +122,7 @@ export default function RestaurantDetail() {
   const [reviewsHasMore, setReviewsHasMore] = useState(false);
   const [reviewsPage, setReviewsPage]       = useState(1);
   const [lightboxImg, setLightboxImg]       = useState(null);
+  const [reviewFilter, setReviewFilter]     = useState('all'); // 'all'|'POSITIVE'|'NEUTRAL'|'NEGATIVE'
 
   // Fetch reviews (independent of restaurant data)
   useEffect(() => {
@@ -629,7 +631,6 @@ export default function RestaurantDetail() {
                   marginBottom: 28, display: "flex", gap: 32, alignItems: "center",
                   flexWrap: "wrap",
                 }}>
-                  {/* Big number */}
                   <div style={{ textAlign: "center", flexShrink: 0 }}>
                     <div style={{
                       fontFamily: "'Playfair Display', serif",
@@ -647,21 +648,15 @@ export default function RestaurantDetail() {
                       {restaurant.totalReviews} verified review{restaurant.totalReviews !== 1 ? "s" : ""}
                     </div>
                   </div>
-
-                  {/* Star breakdown bars */}
                   <div style={{ flex: 1, minWidth: 180 }}>
                     {[5,4,3,2,1].map(star => {
                       const count = reviews.filter(r => Math.round(r.rating) === star).length;
                       const pct = reviews.length > 0 ? Math.round((count / reviews.length) * 100) : 0;
                       return (
-                        <div key={star} style={{
-                          display: "flex", alignItems: "center", gap: 10, marginBottom: 6,
-                        }}>
+                        <div key={star} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
                           <span style={{ fontSize: 12, color: C.textMuted, fontWeight: 600, width: 14, textAlign: "right" }}>{star}</span>
                           <span style={{ color: C.amber, fontSize: 13 }}>★</span>
-                          <div style={{
-                            flex: 1, height: 7, background: C.border, borderRadius: 4, overflow: "hidden",
-                          }}>
+                          <div style={{ flex: 1, height: 7, background: C.border, borderRadius: 4, overflow: "hidden" }}>
                             <div style={{
                               width: `${pct}%`, height: "100%",
                               background: `linear-gradient(90deg, ${C.amber}, #E8A050)`,
@@ -675,6 +670,9 @@ export default function RestaurantDetail() {
                   </div>
                 </div>
               )}
+
+              {/* ── ML Insights (below overall rating) ────────────────── */}
+              <RestaurantInsights restaurantId={id} />
 
               {/* ── All review photos grid ──────────────────────────── */}
               {reviews.some(r => r.media?.length > 0) && (() => {
@@ -728,6 +726,26 @@ export default function RestaurantDetail() {
               })()}
 
               {/* ── Individual reviews ──────────────────────────────── */}
+              {/* Sentiment filter pills */}
+              {reviews.length > 0 && (
+                <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+                  {[
+                    { val: 'all',      label: 'All',       color: '#6B5B45', bg: '#F5F0E8' },
+                    { val: 'POSITIVE', label: '😊 Positive', color: '#2E7D52', bg: '#EEF7F2' },
+                    { val: 'NEUTRAL',  label: '😐 Neutral',  color: '#4A5568', bg: '#F3F4F6' },
+                    { val: 'NEGATIVE', label: '😞 Negative', color: '#C62828', bg: '#FFF0F0' },
+                  ].map(({ val, label, color, bg }) => (
+                    <button key={val} onClick={() => setReviewFilter(val)} style={{
+                      padding: "5px 16px", borderRadius: 100, fontSize: 12, fontWeight: 600,
+                      cursor: "pointer", border: `1.5px solid ${reviewFilter === val ? color : '#E8E8F0'}`,
+                      background: reviewFilter === val ? bg : '#fff',
+                      color: reviewFilter === val ? color : '#8B8BA7',
+                      fontFamily: "'DM Sans', sans-serif",
+                      transition: "all 0.15s",
+                    }}>{label}</button>
+                  ))}
+                </div>
+              )}
               {reviewsLoading && reviews.length === 0 ? (
                 <div style={{ padding: "40px", textAlign: "center", color: C.textMuted }}>
                   <div style={{
@@ -748,7 +766,15 @@ export default function RestaurantDetail() {
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                  {reviews.map(review => (
+                  {(reviewFilter === 'all' ? reviews : reviews.filter(r => r.sentimentLabel === reviewFilter)).length === 0 && (
+                    <div style={{
+                      background: C.bgCard, border: `1px solid ${C.border}`,
+                      borderRadius: 14, padding: "28px 24px", textAlign: "center",
+                    }}>
+                      <p style={{ fontSize: 14, color: C.textMuted }}>No {reviewFilter.toLowerCase()} reviews to show.</p>
+                    </div>
+                  )}
+                  {(reviewFilter === 'all' ? reviews : reviews.filter(r => r.sentimentLabel === reviewFilter)).map(review => (
                     <div key={review._id} style={{
                       background: C.bgCard, padding: 22, borderRadius: 14,
                       border: `1px solid ${C.border}`,
@@ -792,6 +818,25 @@ export default function RestaurantDetail() {
                             background: C.amber + "15", color: C.amber,
                             borderRadius: 10, border: `1px solid ${C.amber}30`,
                           }}>{review.rating}/5</span>
+
+                          {/* Sentiment badge — only shown after ML processes the review */}
+                          {review.sentimentLabel && (
+                            <span style={{
+                              fontSize: 11, fontWeight: 700,
+                              padding: "2px 10px", borderRadius: 10,
+                              border: `1px solid`,
+                              ...(review.sentimentLabel === 'POSITIVE'
+                                ? { background: '#E8F5EE', color: '#2E7D52', borderColor: '#4A9B6F40' }
+                                : review.sentimentLabel === 'NEGATIVE'
+                                ? { background: '#FFF0F0', color: '#C62828', borderColor: '#EF535030' }
+                                : { background: '#F3F4F6', color: '#6B7280', borderColor: '#D1D5DB' }
+                              ),
+                            }}>
+                              {review.sentimentLabel === 'POSITIVE' ? '😊 Positive'
+                                : review.sentimentLabel === 'NEGATIVE' ? '😞 Negative'
+                                : '😐 Neutral'}
+                            </span>
+                          )}
                         </div>
                       </div>
 
@@ -807,6 +852,27 @@ export default function RestaurantDetail() {
                         <p style={{ fontSize: 14, color: C.textMid, lineHeight: 1.7, marginBottom: 12 }}>
                           {review.comment}
                         </p>
+                      )}
+
+                      {/* Aspect-level sentiment pills — only when ML has run */}
+                      {review.sentimentLabel && Array.isArray(review.aspects) && review.aspects.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+                          {review.aspects.map((a, ai) => (
+                            <span key={ai} style={{
+                              fontSize: 11, fontWeight: 600,
+                              padding: '3px 10px', borderRadius: 20,
+                              border: '1px solid',
+                              ...(a.sentiment === 'POSITIVE'
+                                ? { background: '#E8F5EE', color: '#2E7D52', borderColor: '#4A9B6F30' }
+                                : a.sentiment === 'NEGATIVE'
+                                ? { background: '#FFF0F0', color: '#C62828', borderColor: '#EF535030' }
+                                : { background: '#F3F4F6', color: '#6B7280', borderColor: '#D1D5DB' }
+                              ),
+                            }}>
+                              {a.sentiment === 'POSITIVE' ? '✓' : a.sentiment === 'NEGATIVE' ? '✗' : '·'} {a.aspect}
+                            </span>
+                          ))}
+                        </div>
                       )}
 
                       {/* Sub-ratings */}
@@ -881,7 +947,7 @@ export default function RestaurantDetail() {
                   ))}
 
                   {/* Load more */}
-                  {reviewsHasMore && (
+                  {reviewFilter === 'all' && reviewsHasMore && (
                     <button
                       onClick={loadMoreReviews}
                       style={{

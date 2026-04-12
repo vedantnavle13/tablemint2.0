@@ -72,6 +72,31 @@ const reviewSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+
+    // ── Sentiment Analysis (populated async by Python ML service) ─────────────
+    sentimentLabel: {
+      type: String,
+      enum: ['POSITIVE', 'NEGATIVE', 'NEUTRAL'],
+      default: null,
+    },
+    sentimentScore: {
+      type: Number,
+      default: null,
+    },
+    aspects: {
+      type: [
+        {
+          aspect:    { type: String },
+          sentiment: { type: String, enum: ['POSITIVE', 'NEGATIVE', 'NEUTRAL'] },
+          score:     { type: Number },
+        },
+      ],
+      default: [],
+    },
+    isProcessed: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

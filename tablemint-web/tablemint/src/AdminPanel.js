@@ -2,24 +2,25 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { apiCall } from './services/api';
+import AdminInsights from './components/AdminInsights';
 
 // ── Design tokens ────────────────────────────────────────────────────────────
 const C = {
-  bg:        '#FDFAF6',
-  bgSoft:    '#F5F0E8',
-  bgCard:    '#FFFFFF',
-  border:    '#E8E0D0',
-  amber:     '#D4883A',
+  bg: '#FDFAF6',
+  bgSoft: '#F5F0E8',
+  bgCard: '#FFFFFF',
+  border: '#E8E0D0',
+  amber: '#D4883A',
   amberSoft: '#FBF0E0',
-  text:      '#2C2416',
-  textMid:   '#6B5B45',
+  text: '#2C2416',
+  textMid: '#6B5B45',
   textMuted: '#A0907A',
-  green:     '#4A9B6F',
-  red:       '#D05A4A',
-  blue:      '#4A7B9D',
+  green: '#4A9B6F',
+  red: '#D05A4A',
+  blue: '#4A7B9D',
 };
 
-const TABS = ['Analytics', 'Reservations', 'Menu'];
+const TABS = ['Analytics', 'Reviews', 'Reservations', 'Menu'];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function fmt(date) {
@@ -31,8 +32,10 @@ function fmt(date) {
 }
 
 function statusColor(s) {
-  return { pending: C.amber, confirmed: C.green, seated: C.blue,
-           completed: '#888', cancelled: C.red, no_show: C.red }[s] || C.textMuted;
+  return {
+    pending: C.amber, confirmed: C.green, seated: C.blue,
+    completed: '#888', cancelled: C.red, no_show: C.red
+  }[s] || C.textMuted;
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -100,7 +103,7 @@ function AnalyticsTab() {
   }, []);
 
   if (loading) return <Spinner />;
-  if (error)   return <EmptyState message={error} />;
+  if (error) return <EmptyState message={error} />;
 
   return (
     <div>
@@ -144,12 +147,53 @@ function AnalyticsTab() {
   );
 }
 
+// ── Reviews Tab (ML Insights) ───────────────────────────────────────────
+function ReviewsTab() {
+  const [restaurantId, setRestaurantId] = useState(null);
+  const [restaurantName, setRestaurantName] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    apiCall('/admin/my-restaurant')
+      .then(res => {
+        const r = res.data?.restaurant || res.data;
+        setRestaurantId(r?._id || null);
+        setRestaurantName(r?.name || '');
+      })
+      .catch(() => { })
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <Spinner />;
+
+  if (!restaurantId) {
+    return (
+      <EmptyState message="No restaurant assigned to your account. Contact a super-admin." />
+    );
+  }
+
+  return (
+    <div>
+      <h2 style={{
+        fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 700,
+        color: C.text, marginBottom: 6,
+      }}>
+        ⭐ Reviews &amp; AI Insights
+      </h2>
+      <p style={{ color: C.textMuted, fontSize: 13, marginBottom: 28 }}>
+        ML-powered sentiment analysis from customer reviews for · <strong>{restaurantName}</strong>.
+      </p>
+      <AdminInsights restaurantId={restaurantId} restaurantName={restaurantName} />
+    </div>
+  );
+}
+
 // ── Reservations Tab ──────────────────────────────────────────────────────────
 function ReservationsTab() {
   const [reservations, setReservations] = useState([]);
-  const [loading, setLoading]           = useState(true);
-  const [error, setError]               = useState('');
-  const [search, setSearch]             = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     apiCall('/admin/reservations')
@@ -170,7 +214,7 @@ function ReservationsTab() {
   });
 
   if (loading) return <Spinner />;
-  if (error)   return <EmptyState message={error} />;
+  if (error) return <EmptyState message={error} />;
 
   return (
     <div>
@@ -261,9 +305,9 @@ function ReservationsTab() {
 
 // ── Menu Tab ──────────────────────────────────────────────────────────────────
 function MenuTab() {
-  const [items, setItems]   = useState([]);
+  const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError]   = useState('');
+  const [error, setError] = useState('');
   const [search, setSearch] = useState('');
 
   useEffect(() => {
@@ -284,7 +328,7 @@ function MenuTab() {
   });
 
   if (loading) return <Spinner />;
-  if (error)   return <EmptyState message={error} />;
+  if (error) return <EmptyState message={error} />;
 
   return (
     <div>
@@ -378,9 +422,9 @@ function MenuTab() {
 
 // ── Main AdminPanel ───────────────────────────────────────────────────────────
 export default function AdminPanel() {
-  const navigate             = useNavigate();
-  const { user, logout }     = useAuth();
-  const [activeTab, setTab]  = useState('Analytics');
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const [activeTab, setTab] = useState('Analytics');
 
   const handleLogout = useCallback(async () => {
     await logout();
@@ -472,9 +516,10 @@ export default function AdminPanel() {
         </div>
 
         {/* Tab content */}
-        {activeTab === 'Analytics'    && <AnalyticsTab />}
+        {activeTab === 'Analytics' && <AnalyticsTab />}
+        {activeTab === 'Reviews' && <ReviewsTab />}
         {activeTab === 'Reservations' && <ReservationsTab />}
-        {activeTab === 'Menu'         && <MenuTab />}
+        {activeTab === 'Menu' && <MenuTab />}
       </div>
     </div>
   );

@@ -44,10 +44,10 @@ function Input({ label, value, onChange, type = "text", placeholder, required, h
 
 function SideNav({ active, setActive, restaurantCount, onLogout }) {
   const items = [
-    { id: "overview", icon: "🏠", label: "Overview" },
+    { id: "overview",  icon: "🏠", label: "Overview" },
     { id: "restaurants", icon: "🏢", label: "My Restaurants", badge: restaurantCount },
-    { id: "revenue", icon: "💰", label: "Revenue" },
-    { id: "add", icon: "➕", label: "Add Restaurant" },
+    { id: "revenue",   icon: "💰", label: "Revenue" },
+    { id: "add",       icon: "➕", label: "Add Restaurant" },
   ];
   return (
     <div style={{ width: 220, background: C.text, minHeight: "100vh", display: "flex", flexDirection: "column", flexShrink: 0 }}>
@@ -1700,7 +1700,6 @@ function RevenueView() {
     </div>
   );
 }
-
 // ─── Main Owner Dashboard ─────────────────────────────────────────────────────
 
 export default function OwnerDashboard() {
@@ -1734,8 +1733,8 @@ export default function OwnerDashboard() {
     }
 
     switch (active) {
-      case "overview": return <Overview user={user} restaurants={restaurants} onNavigate={setActive} />;
-      case "restaurants": return <RestaurantList restaurants={restaurants} onSelect={async (r) => {
+      case "overview":     return <Overview user={user} restaurants={restaurants} onNavigate={setActive} />;
+      case "restaurants":  return <RestaurantList restaurants={restaurants} onSelect={async (r) => {
         // Fetch full restaurant (includes menu + tables) instead of the summary version
         try {
           const res = await axios.get(`/restaurants/${r._id}`);
@@ -1744,9 +1743,9 @@ export default function OwnerDashboard() {
           setSelectedRestaurant(r); // fallback to summary if fetch fails
         }
       }} onAdd={() => setActive("add")} />;
-      case "add": return <AddRestaurantForm onSuccess={handleRestaurantAdded} />;
-      case "revenue": return <RevenueView />;
-      default: return null;
+      case "add":          return <AddRestaurantForm onSuccess={handleRestaurantAdded} />;
+      case "revenue":      return <RevenueView />;
+      default:             return null;
     }
   };
 

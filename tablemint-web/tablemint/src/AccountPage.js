@@ -481,8 +481,22 @@ function BookingsTab() {
   const [localMessages, setLocalMessages] = useState({}); // { reservationId: message }
 
   useEffect(() => {
+    // Fetch all reservations
     axios.get("/reservations/my?limit=100")
-      .then(r => setReservations(r.data.data.reservations || []))
+      .then(r => {
+        const allReservations = r.data.data.reservations || [];
+        setReservations(allReservations);
+
+        // Pre-seed reviewedIds from backend — find completed bookings that already have a review
+        // We use the restaurant review eligibility endpoint per restaurant, but that's expensive.
+        // Simpler: fetch the customer's own reviews and build a set of reviewed reservationIds.
+        return axios.get("/reviews/my").catch(() => ({ data: { data: { reviews: [] } } }));
+      })
+      .then(r => {
+        const myReviews = r?.data?.data?.reviews || [];
+        const doneIds = new Set(myReviews.map(rv => rv.reservation?.toString()).filter(Boolean));
+        setReviewedIds(doneIds);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
