@@ -8,14 +8,13 @@ load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
 HF_TOKEN = os.getenv("HF_TOKEN")
 HEADERS = {"Authorization": f"Bearer {HF_TOKEN}"}
 
-print(f"[DEBUG TOKEN] HF_TOKEN loaded: {HF_TOKEN[:10] if HF_TOKEN else 'NOT FOUND'}")
 
 nlp = spacy.load("en_core_web_sm")
 
 SENTIMENT_URL = "https://router.huggingface.co/hf-inference/models/cardiffnlp/twitter-roberta-base-sentiment-latest"
 ABSA_URL      = "https://router.huggingface.co/hf-inference/models/yangheng/deberta-v3-base-absa-v1.1"
 
-STRUCTURED_ASPECTS = {"food", "service", "ambience"}
+STRUCTURED_ASPECTS = {"food", "service", "ambience", "nightmare", "place", "thing", "lot", "way", "time"}
 ABSA_MIN_LENGTH    = 40
 
 LABEL_MAP = {
@@ -36,7 +35,6 @@ def run_sentiment(text: str) -> dict:
         timeout=30
     )
     data = response.json()
-    print(f"[DEBUG SENTIMENT] status={response.status_code} data={data}")
 
     if isinstance(data, list) and isinstance(data[0], list):
         top = max(data[0], key=lambda x: x["score"])
@@ -70,7 +68,7 @@ def run_absa(text: str, aspect: str) -> dict:
         timeout=30
     )
     data = response.json()
-    print(f"[DEBUG ABSA] aspect={aspect} status={response.status_code} data={data}")
+
 
     if isinstance(data, list) and isinstance(data[0], list):
         top = max(data[0], key=lambda x: x["score"])

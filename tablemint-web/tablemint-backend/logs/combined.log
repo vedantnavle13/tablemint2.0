@@ -267,3 +267,5 @@
 {"level":"info","message":"[ML] Sentiment saved for review 69da9d00fafc7b86842c56f9: POSITIVE","timestamp":"2026-04-12 00:42:03"}
 {"level":"error","message":"400 - Cannot seat yet. Seating opens in 5377 minutes (30 min before scheduled time). - /api/admin/reservations/69da96d55d30c09199368026/status","timestamp":"2026-04-12 00:53:16"}
 {"level":"info","message":"Email sent: <899dab16-b18e-c5d1-8445-f156b396b417@tablemint.com>","timestamp":"2026-04-12 10:15:56"}
+{"level":"info","message":"[Review] Created by user 69d859a82a6a4c753a24e221 for restaurant 69d865de240d3bae8d2b7044 | booking 69da969e5d30c09199367fe0 | 0 image(s).","timestamp":"2026-04-12 16:35:43"}
+{"level":"info","message":"[ML] Sentiment saved for review 69db7c868e623f827eff959e: POSITIVE","timestamp":"2026-04-12 16:35:48"}
