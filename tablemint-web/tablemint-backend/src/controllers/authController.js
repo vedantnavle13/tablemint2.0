@@ -60,14 +60,18 @@ exports.register = catchAsync(async (req, res, next) => {
       existingUser.otpExpires = new Date(Date.now() + 10 * 60 * 1000);
       await existingUser.save({ validateBeforeSave: false });
 
-      const tpl = emailTemplates.otpVerification(existingUser, otp);
-      await sendEmail({ to: existingUser.email, ...tpl });
-
-      return res.status(200).json({
+      // Respond immediately, send email in background (SMTP is slow on Render)
+      res.status(200).json({
         status: 'success',
         message: 'A new verification code has been sent to your email.',
         data: { email: existingUser.email },
       });
+
+      const tpl = emailTemplates.otpVerification(existingUser, otp);
+      sendEmail({ to: existingUser.email, ...tpl }).catch((err) => {
+        logger.error(`OTP resend email failed for ${existingUser.email}: ${err.message}`);
+      });
+      return;
     }
   }
 
@@ -119,13 +123,16 @@ exports.sendOTP = catchAsync(async (req, res, next) => {
   user.otpExpires = new Date(Date.now() + 10 * 60 * 1000);
   await user.save({ validateBeforeSave: false });
 
-  const tpl = emailTemplates.otpVerification(user, otp);
-  await sendEmail({ to: user.email, ...tpl });
-
+  // Respond immediately — don't block on SMTP
   res.status(200).json({
     status: 'success',
     message: 'A new verification code has been sent to your email.',
     data: { email: user.email },
+  });
+
+  const tpl = emailTemplates.otpVerification(user, otp);
+  sendEmail({ to: user.email, ...tpl }).catch((err) => {
+    logger.error(`OTP resend email failed for ${user.email}: ${err.message}`);
   });
 });
 
