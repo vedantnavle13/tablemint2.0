@@ -39,7 +39,11 @@ export default function RegisterPage() {
             const data = await register({ name, email, phone, password, role: "customer" });
             navigate(`/verify-otp?email=${encodeURIComponent(data.email)}`, { replace: true });
         } catch (err) {
-            setError(err.response?.data?.message || "Registration failed. Please try again.");
+            if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+                setError("Server is waking up — this can take up to 60 seconds on first use. Please try again.");
+            } else {
+                setError(err.response?.data?.message || "Registration failed. Please try again.");
+            }
         } finally {
             setLoading(false);
         }
@@ -100,7 +104,7 @@ export default function RegisterPage() {
                             fontSize:15, fontWeight:700, cursor:loading ? "not-allowed" : "pointer",
                             boxShadow:`0 4px 16px ${C.amber}40`,
                         }}>
-                            {loading ? "Creating account…" : "Create Account →"}
+                            {loading ? "Creating account… (may take ~30s on first use)" : "Create Account →"}
                         </button>
                     </form>
 

@@ -1,26 +1,43 @@
 const nodemailer = require('nodemailer');
 const logger = require('./logger');
 
-const createTransporter = () => {
-  return nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: process.env.EMAIL_PORT,
+// ─── Singleton transporter — reuse the SMTP connection across requests ────────
+// Creating a new transporter per request causes a full SMTP handshake every
+// time, which is extremely slow on Render (Gmail STARTTLS on port 587 can take
+// 10-20s). A singleton keeps the connection alive and reuses it.
+let _transporter = null;
+
+const getTransporter = () => {
+  if (_transporter) return _transporter;
+
+  _transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.EMAIL_PORT) || 587,
+    secure: false,        // false = STARTTLS on port 587 (NOT SSL on 465)
+    requireTLS: true,     // force STARTTLS upgrade — prevents plain-text fallback
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
+    connectionTimeout: 10000,  // 10s — give up waiting for TCP connection
+    greetingTimeout:   5000,   // 5s  — give up waiting for SMTP greeting
+    socketTimeout:     30000,  // 30s — max time for a send operation
+    pool: true,                // keep connections alive in a pool
+    maxConnections: 3,
   });
+
+  return _transporter;
 };
 
 /**
- * Send email
+ * Send email — resolves quickly on subsequent calls thanks to connection pool.
  * @param {Object} options - { to, subject, html, text }
  */
 const sendEmail = async (options) => {
-  const transporter = createTransporter();
+  const transporter = getTransporter();
 
   const mailOptions = {
-    from: process.env.EMAIL_FROM,
+    from: process.env.EMAIL_FROM || `TableMint <${process.env.EMAIL_USER}>`,
     to: options.to,
     subject: options.subject,
     text: options.text,
@@ -33,6 +50,10 @@ const sendEmail = async (options) => {
     return info;
   } catch (error) {
     logger.error(`Email send failed: ${error.message}`);
+    // Reset transporter on connection errors so next call gets a fresh one
+    if (error.code === 'ECONNECTION' || error.code === 'ETIMEDOUT') {
+      _transporter = null;
+    }
     throw error;
   }
 };

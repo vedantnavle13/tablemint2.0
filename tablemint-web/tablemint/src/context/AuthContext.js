@@ -11,6 +11,7 @@ export const useAuth = () => {
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 axios.defaults.baseURL = API_URL;
+axios.defaults.timeout = 60000; // 60s — handles Render free-tier cold start
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -63,7 +64,8 @@ export const AuthProvider = ({ children }) => {
   // ── register: creates unverified account + sends OTP email ───────────────
   // Returns { email, role } — does NOT log in automatically.
   const register = async (userData) => {
-    const response = await axios.post('/auth/register', userData);
+    // 70s timeout: Render cold start (30-60s) + OTP email send time
+    const response = await axios.post('/auth/register', userData, { timeout: 70000 });
     return response.data.data; // { email, role }
   };
 
