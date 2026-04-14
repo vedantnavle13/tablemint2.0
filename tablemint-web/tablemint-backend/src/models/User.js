@@ -83,7 +83,9 @@ userSchema.pre('save', async function (next) {
 // Hash password
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
-  this.password = await bcrypt.hash(this.password, 10); // 10 rounds — secure + fast on Render free tier
+
+  this.password = await bcrypt.hash(this.password, 10);
+
   next();
 });
 

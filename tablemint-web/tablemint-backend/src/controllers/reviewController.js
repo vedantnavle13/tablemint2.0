@@ -18,7 +18,7 @@ const triggerSentimentAnalysis = (reviewId, text) => {
   if (!text || text.trim().length === 0) return; // no comment to analyse
 
   axios
-    .post(`${ML_SERVICE_URL}/analyze-single`, { text }, { timeout: 15000 })
+    .post(`${ML_SERVICE_URL}/analyze-single`, { text }, { timeout: 60000 })
     .then(async ({ data }) => {
       // Python service returns snake_case: sentiment_label, sentiment_score, aspects
       await Review.findByIdAndUpdate(reviewId, {

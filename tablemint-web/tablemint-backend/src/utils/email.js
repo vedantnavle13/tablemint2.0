@@ -221,3 +221,4 @@ const emailTemplates = {
 };
 
 module.exports = { sendEmail, emailTemplates };
+
