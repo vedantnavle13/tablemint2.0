@@ -89,14 +89,18 @@ exports.register = catchAsync(async (req, res, next) => {
     otpExpires: new Date(Date.now() + 10 * 60 * 1000),
   });
 
-  // Send the OTP email
-  const tpl = emailTemplates.otpVerification(user, otp);
-  await sendEmail({ to: user.email, ...tpl });
-
+  // Respond immediately — don't block on SMTP (which can be slow on Render).
+  // The email is fired in the background; if it fails we log it.
   res.status(201).json({
     status: 'success',
     message: 'Account created! Please check your email for the 6-digit verification code.',
     data: { email: user.email, role: user.role },
+  });
+
+  // Fire-and-forget the OTP email after the response is sent
+  const tpl = emailTemplates.otpVerification(user, otp);
+  sendEmail({ to: user.email, ...tpl }).catch((err) => {
+    logger.error(`OTP email failed for ${user.email}: ${err.message}`);
   });
 });
 
