@@ -3,20 +3,20 @@ import { apiCall } from '../services/api';
 
 // ── Design tokens (matches AdminPanel palette) ────────────────────────────────
 const C = {
-  bg:        '#FDFAF6',
-  bgSoft:    '#F5F0E8',
-  bgCard:    '#FFFFFF',
-  border:    '#E8E0D0',
-  amber:     '#D4883A',
+  bg: '#FDFAF6',
+  bgSoft: '#F5F0E8',
+  bgCard: '#FFFFFF',
+  border: '#E8E0D0',
+  amber: '#D4883A',
   amberSoft: '#FBF0E0',
-  text:      '#2C2416',
-  textMid:   '#6B5B45',
+  text: '#2C2416',
+  textMid: '#6B5B45',
   textMuted: '#A0907A',
-  green:     '#4A9B6F',
+  green: '#4A9B6F',
   greenSoft: '#E8F5EE',
-  red:       '#C62828',
-  redSoft:   '#FFF0F0',
-  violet:    '#7C3AED',
+  red: '#C62828',
+  redSoft: '#FFF0F0',
+  violet: '#7C3AED',
 };
 
 // ── Mini helpers ──────────────────────────────────────────────────────────────
@@ -37,7 +37,7 @@ function SentimentBadge({ label }) {
   const map = {
     POSITIVE: { bg: '#E8F5EE', color: '#2E7D52', icon: '😊' },
     NEGATIVE: { bg: '#FFF0F0', color: '#C62828', icon: '😞' },
-    NEUTRAL:  { bg: '#F3F4F6', color: '#6B7280', icon: '😐' },
+    NEUTRAL: { bg: '#F3F4F6', color: '#6B7280', icon: '😐' },
   };
   const m = map[label] || map.NEUTRAL;
   return (
@@ -71,11 +71,11 @@ function Bar({ pct, color }) {
  *   restaurantName — display name (optional, for header)
  */
 export default function AdminInsights({ restaurantId, restaurantName }) {
-  const [data, setData]       = useState(null);
+  const [data, setData] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState('');
-  const [filter, setFilter]   = useState('all'); // all | POSITIVE | NEGATIVE | NEUTRAL
+  const [error, setError] = useState('');
+  const [filter, setFilter] = useState('all'); // all | POSITIVE | NEGATIVE | NEUTRAL
 
   useEffect(() => {
     if (!restaurantId) return;
@@ -140,7 +140,7 @@ export default function AdminInsights({ restaurantId, restaurantName }) {
         borderRadius: 20, padding: '24px 32px', marginBottom: 24,
         display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap',
       }}>
-        <div style={{ fontSize: 44 }}>🤖</div>
+        <div style={{ fontSize: 44 }}></div>
         <div style={{ flex: 1, minWidth: 200 }}>
           <h2 style={{
             fontFamily: "'Playfair Display', serif",
@@ -150,15 +150,15 @@ export default function AdminInsights({ restaurantId, restaurantName }) {
             {restaurantName && <span style={{ fontWeight: 400, opacity: 0.6 }}> — {restaurantName}</span>}
           </h2>
           <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', margin: 0 }}>
-            {processedTotal} ML-processed &nbsp;·&nbsp; {total - processedTotal} pending analysis
+            {processedTotal} AI-processed &nbsp;·&nbsp; {total - processedTotal} pending analysis
             &nbsp;·&nbsp; {processedPct}% coverage
           </p>
         </div>
         {/* Sentiment tiles */}
         {[
-          ['😊 Positive', positivePercent, '#4A9B6F'],
-          ['😞 Negative', negativePercent, '#C62828'],
-          ['😐 Neutral',  neutralPercent,  '#9CA3AF'],
+          [' Positive', positivePercent, '#4A9B6F'],
+          [' Negative', negativePercent, '#C62828'],
+          [' Neutral', neutralPercent, '#9CA3AF'],
         ].map(([label, pct, color]) => (
           <div key={label} style={{
             textAlign: 'center', background: 'rgba(255,255,255,0.07)',
@@ -176,10 +176,10 @@ export default function AdminInsights({ restaurantId, restaurantName }) {
       {/* ── Section 2: Stat cards ─────────────────────────────────────────── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px,1fr))', gap: 16, marginBottom: 24 }}>
         {[
-          { icon: '📝', label: 'Total Reviews',   value: total,           color: C.text    },
-          { icon: '🤖', label: 'AI Processed',    value: processedTotal,  color: C.violet  },
-          { icon: '⭐', label: 'Avg Rating',       value: starAverages.overall ? `${starAverages.overall}/5` : '—', color: C.amber },
-          { icon: '😊', label: 'Positive Rate',   value: `${positivePercent}%`, color: C.green   },
+          { icon: '', label: 'Total Reviews', value: total, color: C.text },
+          { icon: '', label: 'AI Processed', value: processedTotal, color: C.violet },
+          { icon: '', label: 'Avg Rating', value: starAverages.overall ? `${starAverages.overall}/5` : '—', color: C.amber },
+          { icon: '', label: 'Positive Rate', value: `${positivePercent}%`, color: C.green },
         ].map(({ icon, label, value, color }) => (
           <div key={label} style={{
             background: C.bgCard, borderRadius: 16, padding: '20px 20px 16px',
@@ -204,13 +204,13 @@ export default function AdminInsights({ restaurantId, restaurantName }) {
         padding: '20px 24px', marginBottom: 24,
       }}>
         <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 16, letterSpacing: 0.3 }}>
-          ⭐ Star Rating Averages
+          Star Rating Averages
         </h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
           {[
             { label: '🍽️ Food Quality', val: starAverages.food },
-            { label: '👨‍🍳 Service',      val: starAverages.service },
-            { label: '✨ Ambience',     val: starAverages.ambience },
+            { label: '👨‍🍳 Service', val: starAverages.service },
+            { label: '✨ Ambience', val: starAverages.ambience },
           ].map(({ label, val }) => (
             <div key={label} style={{
               background: C.bgSoft, borderRadius: 12, padding: '14px 16px',
@@ -230,9 +230,9 @@ export default function AdminInsights({ restaurantId, restaurantName }) {
         <div style={{ background: C.bgCard, borderRadius: 16, padding: '20px 24px', border: `1px solid ${C.border}` }}>
           <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, marginBottom: 16 }}>Sentiment Breakdown</h3>
           {[
-            ['😊 Positive', positivePercent, C.green],
-            ['😐 Neutral',  neutralPercent,  '#9CA3AF'],
-            ['😞 Negative', negativePercent, C.red],
+            [' Positive', positivePercent, C.green],
+            [' Neutral', neutralPercent, '#9CA3AF'],
+            [' Negative', negativePercent, C.red],
           ].map(([label, pct, color]) => (
             <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
               <span style={{ fontSize: 12, fontWeight: 600, color: C.textMid, width: 90, flexShrink: 0 }}>{label}</span>
@@ -274,7 +274,7 @@ export default function AdminInsights({ restaurantId, restaurantName }) {
                 const dom = pp >= 60 ? 'POSITIVE' : np >= 60 ? 'NEGATIVE' : 'NEUTRAL';
                 const [bg, color] =
                   dom === 'POSITIVE' ? [C.greenSoft, C.green] :
-                  dom === 'NEGATIVE' ? [C.redSoft,   C.red]   : ['#F3F4F6', '#6B7280'];
+                    dom === 'NEGATIVE' ? [C.redSoft, C.red] : ['#F3F4F6', '#6B7280'];
                 const icon = dom === 'POSITIVE' ? '✓' : dom === 'NEGATIVE' ? '✗' : '·';
                 return (
                   <span key={aspect}
@@ -299,7 +299,7 @@ export default function AdminInsights({ restaurantId, restaurantName }) {
                 fontSize: 11, fontWeight: 700, color: C.textMuted,
                 textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10,
               }}>
-                🔴 Areas to Watch
+                Areas to Watch
               </div>
               {negativeReviews.map((r, i) => (
                 <div key={i} style={{
@@ -341,17 +341,17 @@ export default function AdminInsights({ restaurantId, restaurantName }) {
           </span>
           <div style={{ display: 'flex', gap: 6 }}>
             {[
-              ['all',      'All'],
-              ['POSITIVE', '😊 Positive'],
-              ['NEGATIVE', '😞 Negative'],
-              ['NEUTRAL',  '😐 Neutral'],
+              ['all', 'All'],
+              ['POSITIVE', ' Positive'],
+              ['NEGATIVE', ' Negative'],
+              ['NEUTRAL', ' Neutral'],
             ].map(([val, lbl]) => (
               <button key={val} onClick={() => setFilter(val)} style={{
                 padding: '6px 14px', borderRadius: 20, fontSize: 12, fontWeight: 600,
                 cursor: 'pointer', border: '1px solid',
                 background: filter === val ? C.amber : '#fff',
-                color:      filter === val ? '#fff'  : C.textMid,
-                borderColor:filter === val ? C.amber : C.border,
+                color: filter === val ? '#fff' : C.textMid,
+                borderColor: filter === val ? C.amber : C.border,
                 fontFamily: "'DM Sans', sans-serif", transition: 'all 0.15s',
               }}>{lbl}</button>
             ))}
@@ -399,7 +399,7 @@ export default function AdminInsights({ restaurantId, restaurantName }) {
                     {/* Stars */}
                     <td style={{ padding: '13px 16px', whiteSpace: 'nowrap' }}>
                       <div style={{ display: 'flex', gap: 1 }}>
-                        {[1,2,3,4,5].map(s => (
+                        {[1, 2, 3, 4, 5].map(s => (
                           <span key={s} style={{ fontSize: 14, color: s <= r.rating ? C.amber : C.border }}>★</span>
                         ))}
                       </div>
@@ -417,7 +417,7 @@ export default function AdminInsights({ restaurantId, restaurantName }) {
                           {r.aspects.slice(0, 3).map((a, i) => {
                             const aColor =
                               a.sentiment === 'POSITIVE' ? C.green :
-                              a.sentiment === 'NEGATIVE' ? C.red   : '#6B7280';
+                                a.sentiment === 'NEGATIVE' ? C.red : '#6B7280';
                             return (
                               <span key={i} style={{
                                 fontSize: 10, fontWeight: 600,

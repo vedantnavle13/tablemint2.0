@@ -113,22 +113,22 @@ function StatCard({ icon, label, value, change, trend }) {
 // ── DASHBOARD TAB ─────────────────────────────────────────────────────────────
 // ════════════════════════════════════════════════════════════════════════════
 function DashboardTab({ user, onTabChange }) {
-  const [stats, setStats]     = useState(null);
+  const [stats, setStats] = useState(null);
   const [reservations, setRes] = useState([]);
-  const [restaurant, setRest]  = useState(null);
-  const [loadingStats, setLS]  = useState(true);
-  const [loadingRes, setLR]    = useState(true);
+  const [restaurant, setRest] = useState(null);
+  const [loadingStats, setLS] = useState(true);
+  const [loadingRes, setLR] = useState(true);
   const [detailRes, setDetail] = useState(null);
 
   useEffect(() => {
-    apiCall("/admin/analytics").then(r => setStats(r.data)).catch(() => {}).finally(() => setLS(false));
-    apiCall("/admin/my-restaurant").then(r => setRest(r.data.restaurant)).catch(() => {});
+    apiCall("/admin/analytics").then(r => setStats(r.data)).catch(() => { }).finally(() => setLS(false));
+    apiCall("/admin/my-restaurant").then(r => setRest(r.data.restaurant)).catch(() => { });
     apiCall("/admin/reservations").then(r => {
       const upcoming = (r.data.reservations || [])
         .filter(rv => new Date(rv.scheduledAt) >= new Date(new Date().setHours(0, 0, 0, 0)))
         .slice(0, 5);
       setRes(upcoming);
-    }).catch(() => {}).finally(() => setLR(false));
+    }).catch(() => { }).finally(() => setLR(false));
   }, []);
 
   const greeting = () => { const h = new Date().getHours(); return h < 12 ? "Good Morning" : h < 17 ? "Good Afternoon" : "Good Evening"; };
@@ -137,18 +137,18 @@ function DashboardTab({ user, onTabChange }) {
     <>
       <div style={{ marginBottom: 32 }}>
         <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 36, fontWeight: 700, color: C.text, marginBottom: 8 }}>
-          {greeting()}, {restaurant?.name || user?.name || "Admin"}! 👋
+          {greeting()}, {restaurant?.name || user?.name || "Admin"}!
         </h1>
-        <p style={{ fontSize: 14, color: C.textMuted }}>📅 {new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
+        <p style={{ fontSize: 14, color: C.textMuted }}>{new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}</p>
       </div>
 
       {loadingStats ? <Spinner text="Loading stats…" /> : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 20, marginBottom: 40 }}>
-          <StatCard icon="📊" label="Today's Reservations" value={stats?.todayReservations ?? "—"} change={stats?.changes?.reservations} trend="good" />
-          <StatCard icon="💳" label="Online Revenue" value={`₹${(stats?.todayRevenue || 0).toLocaleString()}`} change={stats?.changes?.revenue} trend="good" />
-          <StatCard icon="🚶" label="Walk-in Revenue" value={`₹${(stats?.todayWalkInRevenue || 0).toLocaleString()}`} change={stats?.changes?.walkInRevenue} trend="good" />
-          <StatCard icon="👥" label="Avg Party Size" value={stats?.avgPartySize || "—"} change={null} />
-          <StatCard icon="❌" label="No-Shows" value={stats?.noShows ?? 0} change={stats?.changes?.noShows !== null ? -(stats?.changes?.noShows ?? 0) : null} trend="good" />
+          <StatCard icon="" label="Today's Reservations" value={stats?.todayReservations ?? "—"} change={stats?.changes?.reservations} trend="good" />
+          <StatCard icon="" label="Online Revenue" value={`₹${(stats?.todayRevenue || 0).toLocaleString()}`} change={stats?.changes?.revenue} trend="good" />
+          <StatCard icon="" label="Walk-in Revenue" value={`₹${(stats?.todayWalkInRevenue || 0).toLocaleString()}`} change={stats?.changes?.walkInRevenue} trend="good" />
+          <StatCard icon="" label="Avg Party Size" value={stats?.avgPartySize || "—"} change={null} />
+          <StatCard icon="" label="No-Shows" value={stats?.noShows ?? 0} change={stats?.changes?.noShows !== null ? -(stats?.changes?.noShows ?? 0) : null} trend="good" />
         </div>
       )}
 
@@ -156,12 +156,12 @@ function DashboardTab({ user, onTabChange }) {
       <div style={{ background: C.bgCard, borderRadius: 20, border: `1px solid ${C.border}`, overflow: "hidden", marginBottom: 40 }}>
         <div style={{ padding: "24px 32px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
-            <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: C.text, marginBottom: 4 }}>🔥 Upcoming Reservations</h2>
+            <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: C.text, marginBottom: 4 }}> Upcoming Reservations</h2>
             <p style={{ fontSize: 14, color: C.textMuted }}>Today's bookings</p>
           </div>
           <Btn onClick={() => onTabChange("Reservations")}>View All →</Btn>
         </div>
-        {loadingRes ? <Spinner /> : reservations.length === 0 ? <Empty icon="📋" title="No upcoming reservations today." /> : (
+        {loadingRes ? <Spinner /> : reservations.length === 0 ? <Empty icon="" title="No upcoming reservations today." /> : (
           <div style={{ overflowX: "auto" }}>
             <table style={{ borderCollapse: "collapse", width: "100%" }}>
               <thead><tr style={{ background: C.bgSoft, borderBottom: `2px solid ${C.border}` }}>
@@ -205,11 +205,11 @@ function DashboardTab({ user, onTabChange }) {
       <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 22, fontWeight: 700, color: C.text, marginBottom: 20 }}>Quick Actions</h3>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 20 }}>
         {[
-          { icon: "📋", title: "Reservations", desc: "View & manage bookings", tab: "Reservations" },
-          { icon: "🍽️", title: "Menu", desc: "Add / edit / delete items", tab: "Menu" },
-          { icon: "🪑", title: "Tables", desc: "Manage table layout", tab: "Tables" },
-          { icon: "📊", title: "Analytics", desc: "Restaurant stats", tab: "Analytics" },
-          { icon: "⭐", title: "Reviews & AI", desc: "ML sentiment insights", tab: "Reviews" },
+          { icon: "", title: "Reservations", desc: "View & manage bookings", tab: "Reservations" },
+          { icon: "", title: "Menu", desc: "Add / edit / delete items", tab: "Menu" },
+          { icon: "", title: "Tables", desc: "Manage table layout", tab: "Tables" },
+          { icon: "", title: "Analytics", desc: "Restaurant stats", tab: "Analytics" },
+          { icon: "", title: "Reviews & AI", desc: "sentiment insights", tab: "Reviews" },
         ].map(a => (
           <div key={a.title} onClick={() => onTabChange(a.tab)}
             style={{ background: C.bgCard, padding: 24, borderRadius: 16, border: `1.5px solid ${C.border}`, cursor: "pointer", transition: "all 0.2s" }}
@@ -256,10 +256,10 @@ function PreOrderModal({ reservation, onClose }) {
 }
 
 function NotifyModal({ reservation, onClose }) {
-  const [msg, setMsg]         = useState("");
+  const [msg, setMsg] = useState("");
   const [sending, setSending] = useState(false);
-  const [done, setDone]       = useState("");
-  const [err, setErr]         = useState("");
+  const [done, setDone] = useState("");
+  const [err, setErr] = useState("");
 
   const send = async () => {
     if (!msg.trim()) return;
@@ -286,7 +286,7 @@ function NotifyModal({ reservation, onClose }) {
         />
       </FormRow>
       {done && <div style={{ padding: "10px 14px", background: C.green + "15", borderRadius: 8, fontSize: 13, color: C.green, marginBottom: 12 }}>✅ {done}</div>}
-      {err  && <div style={{ padding: "10px 14px", background: C.red  + "15", borderRadius: 8, fontSize: 13, color: C.red,   marginBottom: 12 }}>⚠️ {err}</div>}
+      {err && <div style={{ padding: "10px 14px", background: C.red + "15", borderRadius: 8, fontSize: 13, color: C.red, marginBottom: 12 }}>⚠️ {err}</div>}
       <Btn onClick={send} disabled={sending || !msg.trim()} style={{ width: "100%" }}>
         {sending ? "Sending…" : "📧 Send Email Notification"}
       </Btn>
@@ -364,29 +364,29 @@ function WalkInBillModal({ order, onClose }) {
 
 function ReservationsTab() {
   const [reservations, setRes] = useState([]);
-  const [loading, setLoading]  = useState(true);
-  const [search, setSearch]    = useState("");
-  const [statusF, setStatusF]  = useState("all");
-  const [detailR, setDetailR]  = useState(null);
-  const [notifyR, setNotifyR]  = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [statusF, setStatusF] = useState("all");
+  const [detailR, setDetailR] = useState(null);
+  const [notifyR, setNotifyR] = useState(null);
   const [updating, setUpdating] = useState(null);
 
   // Walk-in state
-  const [subTab, setSubTab]       = useState("online"); // 'online' | 'walkins'
-  const [walkIns, setWalkIns]     = useState([]);
+  const [subTab, setSubTab] = useState("online"); // 'online' | 'walkins'
+  const [walkIns, setWalkIns] = useState([]);
   const [wiLoading, setWiLoading] = useState(false);
-  const [wiPaying, setWiPaying]   = useState(null);    // orderId being paid
-  const [wiBill, setWiBill]       = useState(null);    // order to show in bill modal
+  const [wiPaying, setWiPaying] = useState(null);    // orderId being paid
+  const [wiBill, setWiBill] = useState(null);    // order to show in bill modal
   const [wiBilling, setWiBilling] = useState(null);    // orderId being bill-generated
 
   const load = useCallback(() => {
     setLoading(true);
-    apiCall("/admin/reservations").then(r => setRes(r.data.reservations || [])).catch(() => {}).finally(() => setLoading(false));
+    apiCall("/admin/reservations").then(r => setRes(r.data.reservations || [])).catch(() => { }).finally(() => setLoading(false));
   }, []);
 
   const loadWalkIns = useCallback(() => {
     setWiLoading(true);
-    apiCall("/admin/walk-ins").then(r => setWalkIns(r.data.walkIns || [])).catch(() => {}).finally(() => setWiLoading(false));
+    apiCall("/admin/walk-ins").then(r => setWalkIns(r.data.walkIns || [])).catch(() => { }).finally(() => setWiLoading(false));
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -436,7 +436,7 @@ function ReservationsTab() {
     <>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 700, color: C.text, marginBottom: 4 }}>📋 Reservations</h2>
+          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 700, color: C.text, marginBottom: 4 }}> Reservations</h2>
           <p style={{ color: C.textMuted, fontSize: 13 }}>{reservations.length} online · {walkIns.length > 0 ? `${walkIns.length} walk-ins` : ""}</p>
         </div>
         {/* Sub-tab switcher */}
@@ -614,7 +614,7 @@ function ReservationsTab() {
 
       {detailR && <PreOrderModal reservation={detailR} onClose={() => setDetailR(null)} />}
       {notifyR && <NotifyModal reservation={notifyR} onClose={() => setNotifyR(null)} />}
-      {wiBill  && <WalkInBillModal order={wiBill} onClose={() => setWiBill(null)} />}
+      {wiBill && <WalkInBillModal order={wiBill} onClose={() => setWiBill(null)} />}
     </>
   );
 }
@@ -653,18 +653,18 @@ function MenuItemForm({ initial = EMPTY_ITEM, onSave, onCancel, saving }) {
 }
 
 function MenuTab() {
-  const [items, setItems]       = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [search, setSearch]     = useState("");
-  const [catF, setCatF]         = useState("all");
-  const [adding, setAdding]     = useState(false);
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [catF, setCatF] = useState("all");
+  const [adding, setAdding] = useState(false);
   const [editItem, setEditItem] = useState(null);
-  const [saving, setSaving]     = useState(false);
+  const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(null);
 
   const load = useCallback(() => {
     setLoading(true);
-    apiCall("/admin/menu").then(r => setItems(r.data.menuItems || [])).catch(() => {}).finally(() => setLoading(false));
+    apiCall("/admin/menu").then(r => setItems(r.data.menuItems || [])).catch(() => { }).finally(() => setLoading(false));
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -787,17 +787,17 @@ function MenuTab() {
 const EMPTY_TABLE = { tableNumber: "", capacity: "", location: "indoor", isAvailable: true };
 
 function TablesTab() {
-  const [tables, setTables]     = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [adding, setAdding]     = useState(false);
-  const [editTable, setEditT]   = useState(null);
-  const [saving, setSaving]     = useState(false);
-  const [form, setForm]         = useState(EMPTY_TABLE);
+  const [tables, setTables] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const [editTable, setEditT] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState(EMPTY_TABLE);
   const [deleting, setDeleting] = useState(null);
 
   const load = useCallback(() => {
     setLoading(true);
-    apiCall("/admin/tables").then(r => setTables(r.data.tables || [])).catch(() => {}).finally(() => setLoading(false));
+    apiCall("/admin/tables").then(r => setTables(r.data.tables || [])).catch(() => { }).finally(() => setLoading(false));
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -899,9 +899,9 @@ function TablesTab() {
 // ── REVIEWS TAB (ML Insights) ─────────────────────────────────────────────────
 // ════════════════════════════════════════════════════════════════════════════
 function ReviewsTab() {
-  const [restaurantId, setRestaurantId]   = useState(null);
+  const [restaurantId, setRestaurantId] = useState(null);
   const [restaurantName, setRestaurantName] = useState('');
-  const [loading, setLoading]             = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     apiCall('/admin/my-restaurant')
@@ -910,14 +910,14 @@ function ReviewsTab() {
         setRestaurantId(r?._id || null);
         setRestaurantName(r?.name || '');
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 
   if (loading) return <Spinner text="Loading restaurant…" />;
 
   if (!restaurantId) {
-    return <Empty icon="🏚️" title="No restaurant assigned." sub="Contact a super-admin to assign a restaurant to your account." />;
+    return <Empty icon="" title="No restaurant assigned." sub="Contact a super-admin to assign a restaurant to your account." />;
   }
 
   return (
@@ -927,7 +927,7 @@ function ReviewsTab() {
           ⭐ Reviews &amp; AI Insights
         </h2>
         <p style={{ color: C.textMuted, fontSize: 13 }}>
-          ML-powered sentiment analysis from customer reviews for · <strong>{restaurantName}</strong>.
+          · <strong>{restaurantName}</strong>.
         </p>
       </div>
       <AdminInsights restaurantId={restaurantId} restaurantName={restaurantName} />
@@ -939,41 +939,41 @@ function ReviewsTab() {
 // ── ANALYTICS TAB ─────────────────────────────────────────────────────────────
 // ════════════════════════════════════════════════════════════════════════════
 function AnalyticsTab() {
-  const [data, setData]       = useState(null);
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiCall("/admin/analytics").then(r => setData(r.data)).catch(() => {}).finally(() => setLoading(false));
+    apiCall("/admin/analytics").then(r => setData(r.data)).catch(() => { }).finally(() => setLoading(false));
   }, []);
 
   if (loading) return <Spinner text="Crunching numbers…" />;
-  if (!data)   return <Empty icon="📊" title="Analytics unavailable." />;
+  if (!data) return <Empty icon="" title="Analytics unavailable." />;
 
   return (
     <>
       <div style={{ marginBottom: 28 }}>
-        <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 700, color: C.text, marginBottom: 6 }}>📊 Analytics — {data.restaurantName}</h2>
+        <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 700, color: C.text, marginBottom: 6 }}> Analytics — {data.restaurantName}</h2>
         <p style={{ color: C.textMuted, fontSize: 13 }}>
           ⭐ {data.avgRating || "No rating"} · {data.totalReviews || 0} reviews · {data.totalReservations} total bookings · % vs yesterday
         </p>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 20, marginBottom: 36 }}>
-        <StatCard icon="📊" label="Today's Reservations" value={data.todayReservations} change={data.changes?.reservations} trend="good" />
-        <StatCard icon="💳" label="Online Revenue" value={`₹${(data.todayRevenue || 0).toLocaleString()}`} change={data.changes?.revenue} trend="good" />
-        <StatCard icon="🚶" label="Walk-in Revenue" value={`₹${(data.todayWalkInRevenue || 0).toLocaleString()}`} change={data.changes?.walkInRevenue} trend="good" />
-        <StatCard icon="👥" label="Avg Party Size" value={data.avgPartySize || "—"} change={null} />
-        <StatCard icon="❌" label="No-Shows Today" value={data.noShows} change={data.changes?.noShows !== null ? -(data.changes?.noShows ?? 0) : null} trend="good" />
+        <StatCard icon="" label="Today's Reservations" value={data.todayReservations} change={data.changes?.reservations} trend="good" />
+        <StatCard icon="" label="Online Revenue" value={`₹${(data.todayRevenue || 0).toLocaleString()}`} change={data.changes?.revenue} trend="good" />
+        <StatCard icon="" label="Walk-in Revenue" value={`₹${(data.todayWalkInRevenue || 0).toLocaleString()}`} change={data.changes?.walkInRevenue} trend="good" />
+        <StatCard icon="" label="Avg Party Size" value={data.avgPartySize || "—"} change={null} />
+        <StatCard icon="" label="No-Shows Today" value={data.noShows} change={data.changes?.noShows !== null ? -(data.changes?.noShows ?? 0) : null} trend="good" />
       </div>
 
       <div style={{ background: C.bgCard, borderRadius: 20, border: `1px solid ${C.border}`, padding: "24px 28px" }}>
         <h3 style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: C.text, marginBottom: 18 }}>Overall Summary</h3>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 16 }}>
           {[
-            { icon: "📋", label: "Total Bookings (All Time)", value: data.totalReservations },
-            { icon: "⭐", label: "Avg Rating", value: data.avgRating || "—" },
-            { icon: "💬", label: "Total Reviews", value: data.totalReviews || 0 },
-            { icon: "💰", label: "Today Revenue", value: `₹${(data.todayRevenue || 0).toLocaleString()}` },
+            { icon: "", label: "Total Bookings (All Time)", value: data.totalReservations },
+            { icon: "", label: "Avg Rating", value: data.avgRating || "—" },
+            { icon: "", label: "Total Reviews", value: data.totalReviews || 0 },
+            { icon: "", label: "Today Revenue", value: `₹${(data.todayRevenue || 0).toLocaleString()}` },
           ].map(({ icon, label, value }) => (
             <div key={label} style={{ textAlign: "center", padding: 18, background: C.bgSoft, borderRadius: 12 }}>
               <div style={{ fontSize: 26, marginBottom: 8 }}>{icon}</div>
@@ -994,8 +994,8 @@ function AnalyticsTab() {
 // ── MAIN DASHBOARD ────────────────────────────────────────────────────────────
 // ════════════════════════════════════════════════════════════════════════════
 export default function Dashboard() {
-  const navigate            = useNavigate();
-  const { user, logout }    = useAuth();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [activeTab, setTab] = useState("Dashboard");
 
   const handleLogout = useCallback(async () => {
@@ -1047,12 +1047,12 @@ export default function Dashboard() {
       </nav>
 
       <div style={{ padding: "36px 5%", maxWidth: 1400, margin: "0 auto" }}>
-        {activeTab === "Dashboard"    && <DashboardTab user={user} onTabChange={setTab} />}
+        {activeTab === "Dashboard" && <DashboardTab user={user} onTabChange={setTab} />}
         {activeTab === "Reservations" && <ReservationsTab />}
-        {activeTab === "Menu"         && <MenuTab />}
-        {activeTab === "Tables"       && <TablesTab />}
-        {activeTab === "Analytics"    && <AnalyticsTab />}
-        {activeTab === "Reviews"      && <ReviewsTab />}
+        {activeTab === "Menu" && <MenuTab />}
+        {activeTab === "Tables" && <TablesTab />}
+        {activeTab === "Analytics" && <AnalyticsTab />}
+        {activeTab === "Reviews" && <ReviewsTab />}
       </div>
     </div>
   );

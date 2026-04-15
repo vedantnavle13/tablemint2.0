@@ -55,7 +55,7 @@ function Spinner() {
 function EmptyState({ message }) {
   return (
     <div style={{ textAlign: 'center', padding: '60px 0', color: C.textMuted }}>
-      <div style={{ fontSize: 48, marginBottom: 12 }}>📭</div>
+      <div style={{ fontSize: 48, marginBottom: 12 }}></div>
       <p style={{ fontSize: 14 }}>{message}</p>
     </div>
   );
@@ -108,7 +108,7 @@ function AnalyticsTab() {
   return (
     <div>
       <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 700, color: C.text, marginBottom: 8 }}>
-        📊 Platform Analytics
+        Platform Analytics
       </h2>
       <p style={{ color: C.textMuted, fontSize: 13, marginBottom: 28 }}>
         Today's stats across all {data.totalRestaurants} active restaurants.
@@ -116,19 +116,19 @@ function AnalyticsTab() {
       </p>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 20, marginBottom: 40 }}>
-        <StatCard icon="📊" label="TODAY'S RESERVATIONS"
+        <StatCard icon="" label="TODAY'S RESERVATIONS"
           value={data.todayReservations}
           change={data.changes.reservations}
         />
-        <StatCard icon="💰" label="REVENUE (FEES)"
+        <StatCard icon="" label="REVENUE (FEES)"
           value={`₹${(data.todayRevenue || 0).toLocaleString()}`}
           change={data.changes.revenue}
         />
-        <StatCard icon="👥" label="AVG PARTY SIZE"
+        <StatCard icon="" label="AVG PARTY SIZE"
           value={data.avgPartySize || '—'}
           change={null}
         />
-        <StatCard icon="❌" label="NO-SHOWS"
+        <StatCard icon="" label="NO-SHOWS"
           value={data.noShows}
           change={data.changes.noShows !== null ? -data.changes.noShows : null}
         />
@@ -139,7 +139,7 @@ function AnalyticsTab() {
         padding: '20px 28px',
       }}>
         <p style={{ fontSize: 13, color: C.textMuted, lineHeight: 1.8 }}>
-          💡 <strong>Tip:</strong> Analytics are computed in real-time from the database.
+          <strong>Tip:</strong> Analytics are computed in real-time from the database.
           Revenue reflects reservation fees collected today. No-show data updates as captains mark status changes.
         </p>
       </div>
@@ -178,7 +178,7 @@ function ReviewsTab() {
         fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 700,
         color: C.text, marginBottom: 6,
       }}>
-        ⭐ Reviews &amp; AI Insights
+        Reviews &amp; AI Insights
       </h2>
       <p style={{ color: C.textMuted, fontSize: 13, marginBottom: 28 }}>
         ML-powered sentiment analysis from customer reviews for · <strong>{restaurantName}</strong>.
@@ -221,7 +221,7 @@ function ReservationsTab() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 700, color: C.text, marginBottom: 4 }}>
-            📋 All Reservations
+            All Reservations
           </h2>
           <p style={{ color: C.textMuted, fontSize: 13 }}>
             {reservations.length} total reservations across all restaurants
@@ -335,7 +335,7 @@ function MenuTab() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 700, color: C.text, marginBottom: 4 }}>
-            🍽️ All Menu Items
+            All Menu Items
           </h2>
           <p style={{ color: C.textMuted, fontSize: 13 }}>
             {items.length} items across all restaurants
@@ -455,7 +455,7 @@ export default function AdminPanel() {
         boxShadow: '0 1px 6px rgba(0,0,0,0.05)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 22 }}>🍽️</span>
+          <span style={{ fontSize: 22 }}></span>
           <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 20, fontWeight: 700, color: C.text }}>
             Table<span style={{ color: C.amber }}>Mint</span>
           </span>
@@ -508,10 +508,10 @@ export default function AdminPanel() {
         {/* Greeting */}
         <div style={{ marginBottom: 32 }}>
           <h1 style={{ fontFamily: "'Playfair Display', serif", fontSize: 32, fontWeight: 700, color: C.text, marginBottom: 6 }}>
-            {greeting()}, {user?.name?.split(' ')[0] || 'Admin'}! 👋
+            {greeting()}, {user?.name?.split(' ')[0] || 'Admin'}!
           </h1>
           <p style={{ color: C.textMuted, fontSize: 14 }}>
-            📅 {new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            {new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </p>
         </div>
 
