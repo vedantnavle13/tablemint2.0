@@ -1,5 +1,0 @@
-com.tablemint.captain.test.app-androidTest-0 /Users/vedant13/tablemint/tablemint-captain-app/app/build/generated/res/resValues/androidTest/debug
-com.tablemint.captain.test.app-updated_navigation_xml-1 /Users/vedant13/tablemint/tablemint-captain-app/app/build/generated/updated_navigation_xml/debugAndroidTest
-com.tablemint.captain.test.app-mergeDebugAndroidTestResources-2 /Users/vedant13/tablemint/tablemint-captain-app/app/build/intermediates/incremental/debugAndroidTest/mergeDebugAndroidTestResources/merged.dir
-com.tablemint.captain.test.app-mergeDebugAndroidTestResources-3 /Users/vedant13/tablemint/tablemint-captain-app/app/build/intermediates/incremental/debugAndroidTest/mergeDebugAndroidTestResources/stripped.dir
-com.tablemint.captain.test.app-debugAndroidTest-4 /Users/vedant13/tablemint/tablemint-captain-app/app/build/intermediates/merged_res/debugAndroidTest/mergeDebugAndroidTestResources

@@ -1,4 +1,0 @@
-#Sun Apr 12 21:50:00 IST 2026
-base.0=/Users/vedant13/tablemint/tablemint-captain-app/app/build/intermediates/dex/debugAndroidTest/mergeProjectDexDebugAndroidTest/0/classes.dex
-path.0=0/classes.dex
-renamed.0=classes.dex
