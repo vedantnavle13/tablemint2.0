@@ -10,19 +10,27 @@ let _transporter = null;
 const getTransporter = () => {
   if (_transporter) return _transporter;
 
+  const port   = parseInt(process.env.EMAIL_PORT) || 587;
+  // port 465 → direct SSL (secure: true); port 587 → STARTTLS (secure: false)
+  const secure = port === 465;
+
   _transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-    port: parseInt(process.env.EMAIL_PORT) || 587,
-    secure: false,        // false = STARTTLS on port 587 (NOT SSL on 465)
-    requireTLS: true,     // force STARTTLS upgrade — prevents plain-text fallback
+    host:       process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port,
+    secure,
+    requireTLS: !secure,   // force STARTTLS on 587; not needed on 465 (already SSL)
     auth: {
       user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
+      pass: process.env.EMAIL_PASS,  // 16-char Gmail App Password, no spaces
     },
-    connectionTimeout: 10000,  // 10s — give up waiting for TCP connection
-    greetingTimeout:   5000,   // 5s  — give up waiting for SMTP greeting
-    socketTimeout:     30000,  // 30s — max time for a send operation
-    pool: true,                // keep connections alive in a pool
+    tls: {
+      rejectUnauthorized: true,  // fail loudly on bad TLS certs
+      minVersion:         'TLSv1.2',
+    },
+    connectionTimeout: 10000,   // 10s — TCP connect timeout
+    greetingTimeout:   5000,    // 5s  — SMTP EHLO greeting timeout
+    socketTimeout:     30000,   // 30s — max time for a send operation
+    pool:           true,       // reuse SMTP connections
     maxConnections: 3,
   });
 
@@ -51,7 +59,12 @@ const sendEmail = async (options) => {
   } catch (error) {
     logger.error(`Email send failed: ${error.message}`);
     // Reset transporter on connection errors so next call gets a fresh one
-    if (error.code === 'ECONNECTION' || error.code === 'ETIMEDOUT') {
+    // Reset singleton on ANY connection/auth error so the next call gets a
+    // fresh transporter rather than reusing a permanently broken one.
+    // EAUTH = wrong/expired App Password or Gmail session revoked
+    const RESET_CODES = ['ECONNECTION', 'ETIMEDOUT', 'EAUTH', 'ESOCKET', 'ECONNRESET'];
+    if (RESET_CODES.includes(error.code)) {
+      logger.warn(`Email transporter reset due to: ${error.code}`);
       _transporter = null;
     }
     throw error;
@@ -183,6 +196,122 @@ const emailTemplates = {
           <p style="color:#A0907A;font-size:13px;line-height:1.7;">
             ⚠️ Please change your password after first login using the "Forgot Password" option.
           </p>
+        </div>
+        <div style="background:#f5ede3;padding:20px 40px;text-align:center;border-top:1px solid #E8E0D0;">
+          <p style="color:#A0907A;font-size:12px;margin:0;">© ${new Date().getFullYear()} TableMint — Discover Pune's Finest Tables</p>
+        </div>
+      </div>
+    `,
+  }),
+
+  // ─── Reservation status update (called by reservationController) ───────────
+  reservationStatusUpdate: (reservation, restaurant, customer, status) => ({
+    subject: `Reservation ${status} – ${restaurant.name}`,
+    html: `
+      <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:600px;margin:0 auto;background:#fff8f0;border-radius:16px;overflow:hidden;">
+        <div style="background:linear-gradient(135deg,#2C2416,#6B5B45);padding:36px 40px;text-align:center;">
+          <div style="font-size:32px;margin-bottom:8px;">🍽️</div>
+          <h1 style="color:#fff;font-size:26px;margin:0;font-weight:700;">Table<span style="color:#D4883A;">Mint</span></h1>
+          <p style="color:rgba(255,255,255,0.6);font-size:13px;margin:6px 0 0;">Reservation Update</p>
+        </div>
+        <div style="padding:40px;">
+          <h2 style="color:#2C2416;font-size:22px;margin:0 0 12px;">Hi ${customer.name},</h2>
+          <p style="color:#6B5B45;font-size:15px;line-height:1.7;margin-bottom:24px;">
+            Your reservation at <strong>${restaurant.name}</strong> has been updated to <strong>${status}</strong>.
+          </p>
+          <div style="background:#2C2416;border-radius:14px;padding:24px 28px;margin-bottom:28px;">
+            <p style="color:rgba(255,255,255,0.5);font-size:12px;text-transform:uppercase;letter-spacing:2px;margin:0 0 14px;">Reservation Details</p>
+            <p style="color:#fff;font-size:14px;margin:0 0 8px;"><span style="color:#A0907A;">Date:</span> <strong>${new Date(reservation.scheduledAt).toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</strong></p>
+            <p style="color:#fff;font-size:14px;margin:0 0 8px;"><span style="color:#A0907A;">Time:</span> <strong>${new Date(reservation.scheduledAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</strong></p>
+            <p style="color:#fff;font-size:14px;margin:0;"><span style="color:#A0907A;">Booking ID:</span> <strong>#${reservation._id.toString().slice(-8).toUpperCase()}</strong></p>
+          </div>
+          <p style="color:#A0907A;font-size:13px;line-height:1.7;">If you have any questions, please contact the restaurant directly.</p>
+        </div>
+        <div style="background:#f5ede3;padding:20px 40px;text-align:center;border-top:1px solid #E8E0D0;">
+          <p style="color:#A0907A;font-size:12px;margin:0;">© ${new Date().getFullYear()} TableMint — Discover Pune's Finest Tables</p>
+        </div>
+      </div>
+    `,
+  }),
+
+  // ─── Custom notification to customer (called by reservationController) ──────
+  customerNotification: (reservation, restaurant, customer, message) => ({
+    subject: `Message from ${restaurant.name} – TableMint`,
+    html: `
+      <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:600px;margin:0 auto;background:#fff8f0;border-radius:16px;overflow:hidden;">
+        <div style="background:linear-gradient(135deg,#2C2416,#6B5B45);padding:36px 40px;text-align:center;">
+          <div style="font-size:32px;margin-bottom:8px;">💬</div>
+          <h1 style="color:#fff;font-size:26px;margin:0;font-weight:700;">Table<span style="color:#D4883A;">Mint</span></h1>
+          <p style="color:rgba(255,255,255,0.6);font-size:13px;margin:6px 0 0;">Message from Restaurant</p>
+        </div>
+        <div style="padding:40px;">
+          <h2 style="color:#2C2416;font-size:22px;margin:0 0 12px;">Hi ${customer.name},</h2>
+          <p style="color:#6B5B45;font-size:15px;line-height:1.7;margin-bottom:24px;">
+            You have received a message from <strong>${restaurant.name}</strong> regarding your reservation.
+          </p>
+          <div style="background:#2C2416;border-radius:14px;padding:24px 28px;margin-bottom:28px;">
+            <p style="color:rgba(255,255,255,0.5);font-size:12px;text-transform:uppercase;letter-spacing:2px;margin:0 0 14px;">Message</p>
+            <p style="color:#fff;font-size:15px;line-height:1.7;margin:0;">${message}</p>
+          </div>
+          <p style="color:#A0907A;font-size:12px;margin:0;">Booking ID: #${reservation._id.toString().slice(-8).toUpperCase()}</p>
+        </div>
+        <div style="background:#f5ede3;padding:20px 40px;text-align:center;border-top:1px solid #E8E0D0;">
+          <p style="color:#A0907A;font-size:12px;margin:0;">© ${new Date().getFullYear()} TableMint — Discover Pune's Finest Tables</p>
+        </div>
+      </div>
+    `,
+  }),
+
+  // ─── Restaurant owner: email OTP for verification ────────────────────────
+  restaurantVerificationOtp: (restaurant, otp, ownerName) => ({
+    subject: `TableMint – Verify Your Restaurant: ${restaurant.name}`,
+    html: `
+      <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:600px;margin:0 auto;background:#fff8f0;border-radius:16px;overflow:hidden;">
+        <div style="background:linear-gradient(135deg,#2C2416,#6B5B45);padding:36px 40px;text-align:center;">
+          <div style="font-size:32px;margin-bottom:8px;">🏪</div>
+          <h1 style="color:#fff;font-size:26px;margin:0;font-weight:700;">Table<span style="color:#D4883A;">Mint</span></h1>
+          <p style="color:rgba(255,255,255,0.6);font-size:13px;margin:6px 0 0;">Restaurant Verification</p>
+        </div>
+        <div style="padding:40px;">
+          <h2 style="color:#2C2416;font-size:22px;margin:0 0 12px;">Hi ${ownerName},</h2>
+          <p style="color:#6B5B45;font-size:15px;line-height:1.7;margin-bottom:24px;">
+            Use the OTP below to verify your restaurant <strong>${restaurant.name}</strong> on TableMint.
+            This code expires in <strong>10 minutes</strong>.
+          </p>
+          <div style="background:#2C2416;border-radius:14px;padding:28px;text-align:center;margin-bottom:32px;">
+            <p style="color:rgba(255,255,255,0.5);font-size:12px;text-transform:uppercase;letter-spacing:2px;margin:0 0 14px;">Verification OTP</p>
+            <div style="letter-spacing:12px;font-size:42px;font-weight:800;color:#D4883A;font-family:'Courier New',monospace;">${otp}</div>
+          </div>
+          <p style="color:#A0907A;font-size:13px;line-height:1.7;">⚠️ Never share this code with anyone.</p>
+        </div>
+        <div style="background:#f5ede3;padding:20px 40px;text-align:center;border-top:1px solid #E8E0D0;">
+          <p style="color:#A0907A;font-size:12px;margin:0;">© ${new Date().getFullYear()} TableMint — Discover Pune's Finest Tables</p>
+        </div>
+      </div>
+    `,
+  }),
+
+  // ─── Restaurant owner: regenerated OTP ───────────────────────────────────
+  restaurantOtpRegenerated: (restaurant, otp, ownerName) => ({
+    subject: `TableMint – New Verification OTP for ${restaurant.name}`,
+    html: `
+      <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:600px;margin:0 auto;background:#fff8f0;border-radius:16px;overflow:hidden;">
+        <div style="background:linear-gradient(135deg,#2C2416,#6B5B45);padding:36px 40px;text-align:center;">
+          <div style="font-size:32px;margin-bottom:8px;">🔄</div>
+          <h1 style="color:#fff;font-size:26px;margin:0;font-weight:700;">Table<span style="color:#D4883A;">Mint</span></h1>
+          <p style="color:rgba(255,255,255,0.6);font-size:13px;margin:6px 0 0;">New Verification Code</p>
+        </div>
+        <div style="padding:40px;">
+          <h2 style="color:#2C2416;font-size:22px;margin:0 0 12px;">Hi ${ownerName},</h2>
+          <p style="color:#6B5B45;font-size:15px;line-height:1.7;margin-bottom:24px;">
+            A new verification OTP has been generated for <strong>${restaurant.name}</strong>.
+            This code expires in <strong>10 minutes</strong>. Previous codes are now invalid.
+          </p>
+          <div style="background:#2C2416;border-radius:14px;padding:28px;text-align:center;margin-bottom:32px;">
+            <p style="color:rgba(255,255,255,0.5);font-size:12px;text-transform:uppercase;letter-spacing:2px;margin:0 0 14px;">New OTP</p>
+            <div style="letter-spacing:12px;font-size:42px;font-weight:800;color:#D4883A;font-family:'Courier New',monospace;">${otp}</div>
+          </div>
+          <p style="color:#A0907A;font-size:13px;line-height:1.7;">⚠️ Never share this code with anyone.</p>
         </div>
         <div style="background:#f5ede3;padding:20px 40px;text-align:center;border-top:1px solid #E8E0D0;">
           <p style="color:#A0907A;font-size:12px;margin:0;">© ${new Date().getFullYear()} TableMint — Discover Pune's Finest Tables</p>
