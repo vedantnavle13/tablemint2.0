@@ -88,22 +88,23 @@ exports.register = catchAsync(async (req, res, next) => {
     phone,
     password,
     role: userRole,
-    isVerified: true,   // Auto-verified — no OTP gate in production
+    isVerified: false,
     otp: hashedOtp,
     otpExpires: new Date(Date.now() + 10 * 60 * 1000),
   });
 
-  // Respond immediately
+  // Respond immediately — don't block on SMTP (which can be slow on Render).
+  // The email is fired in the background; if it fails we log it.
   res.status(201).json({
     status: 'success',
-    message: 'Account created successfully! You can now log in.',
+    message: 'Account created! Please check your email for the 6-digit verification code.',
     data: { email: user.email, role: user.role },
   });
 
-  // Still send welcome/OTP email in background — failure does NOT block anything
+  // Fire-and-forget the OTP email after the response is sent
   const tpl = emailTemplates.otpVerification(user, otp);
   sendEmail({ to: user.email, ...tpl }).catch((err) => {
-    logger.error(`Welcome email failed for ${user.email}: ${err.message}`);
+    logger.error(`OTP email failed for ${user.email}: ${err.message}`);
   });
 });
 
@@ -187,8 +188,13 @@ exports.login = catchAsync(async (req, res, next) => {
     return next(new AppError('Account is deactivated. Please contact support.', 401));
   }
 
-  // OTP verification gate removed — users are auto-verified on registration.
-  // Keeping this comment so it's easy to re-enable if email is fixed later.
+  // Block login until email is verified (superadmin is exempt — created from terminal)
+  if (!user.isVerified && user.role !== 'superadmin') {
+    return next(new AppError(
+      'Your email address has not been verified. Please check your inbox for the verification code.',
+      403
+    ));
+  }
 
   user.lastLogin = new Date();
   await user.save({ validateBeforeSave: false });

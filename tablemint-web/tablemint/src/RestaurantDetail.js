@@ -116,13 +116,13 @@ export default function RestaurantDetail() {
   }, [id]);
 
   // ── Reviews ───────────────────────────────────────────────────────────────
-  const [reviews, setReviews]               = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
-  const [reviewsTotal, setReviewsTotal]     = useState(0);
+  const [reviewsTotal, setReviewsTotal] = useState(0);
   const [reviewsHasMore, setReviewsHasMore] = useState(false);
-  const [reviewsPage, setReviewsPage]       = useState(1);
-  const [lightboxImg, setLightboxImg]       = useState(null);
-  const [reviewFilter, setReviewFilter]     = useState('all'); // 'all'|'POSITIVE'|'NEUTRAL'|'NEGATIVE'
+  const [reviewsPage, setReviewsPage] = useState(1);
+  const [lightboxImg, setLightboxImg] = useState(null);
+  const [reviewFilter, setReviewFilter] = useState('all'); // 'all'|'POSITIVE'|'NEUTRAL'|'NEGATIVE'
 
   // Fetch reviews (independent of restaurant data)
   useEffect(() => {
@@ -135,7 +135,7 @@ export default function RestaurantDetail() {
         setReviewsHasMore((res.data.totalPages || 1) > 1);
         setReviewsPage(1);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setReviewsLoading(false));
   }, [id]);
 
@@ -147,7 +147,7 @@ export default function RestaurantDetail() {
         setReviewsHasMore(next < (res.data.totalPages || 1));
         setReviewsPage(next);
       })
-      .catch(() => {});
+      .catch(() => { });
   };
 
   // Recompute distance whenever userLocation or restaurant changes
@@ -637,7 +637,7 @@ export default function RestaurantDetail() {
                       fontSize: 56, fontWeight: 900, color: C.amber, lineHeight: 1,
                     }}>{(restaurant.avgRating || restaurant.rating || 0).toFixed(1)}</div>
                     <div style={{ display: "flex", gap: 3, justifyContent: "center", margin: "8px 0" }}>
-                      {[1,2,3,4,5].map(s => (
+                      {[1, 2, 3, 4, 5].map(s => (
                         <span key={s} style={{
                           fontSize: 20,
                           color: s <= Math.round(restaurant.avgRating || restaurant.rating || 0) ? C.amber : C.border,
@@ -649,7 +649,7 @@ export default function RestaurantDetail() {
                     </div>
                   </div>
                   <div style={{ flex: 1, minWidth: 180 }}>
-                    {[5,4,3,2,1].map(star => {
+                    {[5, 4, 3, 2, 1].map(star => {
                       const count = reviews.filter(r => Math.round(r.rating) === star).length;
                       const pct = reviews.length > 0 ? Math.round((count / reviews.length) * 100) : 0;
                       return (
@@ -730,9 +730,9 @@ export default function RestaurantDetail() {
               {reviews.length > 0 && (
                 <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
                   {[
-                    { val: 'all',      label: 'All',       color: '#6B5B45', bg: '#F5F0E8' },
+                    { val: 'all', label: 'All', color: '#6B5B45', bg: '#F5F0E8' },
                     { val: 'POSITIVE', label: '😊 Positive', color: '#2E7D52', bg: '#EEF7F2' },
-                    { val: 'NEUTRAL',  label: '😐 Neutral',  color: '#4A5568', bg: '#F3F4F6' },
+                    { val: 'NEUTRAL', label: '😐 Neutral', color: '#4A5568', bg: '#F3F4F6' },
                     { val: 'NEGATIVE', label: '😞 Negative', color: '#C62828', bg: '#FFF0F0' },
                   ].map(({ val, label, color, bg }) => (
                     <button key={val} onClick={() => setReviewFilter(val)} style={{
@@ -806,7 +806,7 @@ export default function RestaurantDetail() {
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
                           <div style={{ display: "flex", gap: 2 }}>
-                            {[1,2,3,4,5].map(i => (
+                            {[1, 2, 3, 4, 5].map(i => (
                               <span key={i} style={{
                                 color: i <= review.rating ? C.amber : C.border,
                                 fontSize: 16,
@@ -828,13 +828,13 @@ export default function RestaurantDetail() {
                               ...(review.sentimentLabel === 'POSITIVE'
                                 ? { background: '#E8F5EE', color: '#2E7D52', borderColor: '#4A9B6F40' }
                                 : review.sentimentLabel === 'NEGATIVE'
-                                ? { background: '#FFF0F0', color: '#C62828', borderColor: '#EF535030' }
-                                : { background: '#F3F4F6', color: '#6B7280', borderColor: '#D1D5DB' }
+                                  ? { background: '#FFF0F0', color: '#C62828', borderColor: '#EF535030' }
+                                  : { background: '#F3F4F6', color: '#6B7280', borderColor: '#D1D5DB' }
                               ),
                             }}>
                               {review.sentimentLabel === 'POSITIVE' ? '😊 Positive'
                                 : review.sentimentLabel === 'NEGATIVE' ? '😞 Negative'
-                                : '😐 Neutral'}
+                                  : '😐 Neutral'}
                             </span>
                           )}
                         </div>
@@ -865,8 +865,8 @@ export default function RestaurantDetail() {
                               ...(a.sentiment === 'POSITIVE'
                                 ? { background: '#E8F5EE', color: '#2E7D52', borderColor: '#4A9B6F30' }
                                 : a.sentiment === 'NEGATIVE'
-                                ? { background: '#FFF0F0', color: '#C62828', borderColor: '#EF535030' }
-                                : { background: '#F3F4F6', color: '#6B7280', borderColor: '#D1D5DB' }
+                                  ? { background: '#FFF0F0', color: '#C62828', borderColor: '#EF535030' }
+                                  : { background: '#F3F4F6', color: '#6B7280', borderColor: '#D1D5DB' }
                               ),
                             }}>
                               {a.sentiment === 'POSITIVE' ? '✓' : a.sentiment === 'NEGATIVE' ? '✗' : '·'} {a.aspect}
@@ -1007,7 +1007,7 @@ export default function RestaurantDetail() {
           </div>
 
           {/* RESERVATION SIDEBAR */}
-          <div style={{ position: "sticky", top: 80, height: "fit-content" }}>
+          <div style={{ position: "sticky", top: 80, height: "calc(100vh - 100px)", overflowY: "auto", paddingRight: 4 }}>
             <div style={{
               background: C.bgCard, padding: 32, borderRadius: 20,
               border: `2px solid ${C.border}`, boxShadow: "0 8px 32px rgba(0,0,0,0.08)",
@@ -1223,15 +1223,28 @@ export default function RestaurantDetail() {
 
               <button onClick={handleReservation} disabled={!isFormValid || bookingLoading || !!bookingSuccess} style={{
                 width: "100%", padding: "18px",
-                background: !isFormValid ? C.border : C.amber,
+                background: bookingLoading ? "#c97a2e" : !isFormValid ? C.border : C.amber,
                 border: "none", borderRadius: 14, color: "#fff",
                 fontSize: 17, fontWeight: 700,
-                cursor: !isFormValid ? "not-allowed" : "pointer",
+                cursor: bookingLoading || !isFormValid ? "not-allowed" : "pointer",
                 fontFamily: "'DM Sans', sans-serif",
                 transition: "all 0.2s ease",
-                boxShadow: isFormValid ? "0 4px 16px rgba(212, 136, 58, 0.3)" : "none",
+                boxShadow: isFormValid ? "0 4px 16px rgba(212, 136, 58, 0.4)" : "none",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                transform: bookingLoading ? "scale(0.98)" : "scale(1)",
+                opacity: bookingLoading ? 0.85 : 1,
               }}>
-                Complete Reservation
+                {bookingLoading ? (
+                  <>
+                    <span style={{
+                      width: 18, height: 18, border: "3px solid rgba(255,255,255,0.4)",
+                      borderTop: "3px solid #fff", borderRadius: "50%",
+                      display: "inline-block",
+                      animation: "spin 0.8s linear infinite",
+                    }} />
+                    Booking your table…
+                  </>
+                ) : "Complete Reservation"}
               </button>
 
               <p style={{

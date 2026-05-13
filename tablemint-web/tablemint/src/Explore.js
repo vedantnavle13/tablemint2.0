@@ -6,17 +6,17 @@ import ShareToGroupModal from "./components/ShareToGroupModal";
 
 
 const C = {
-  bg:        "#FDFAF6",
-  bgSoft:    "#F5F0E8",
-  bgCard:    "#FFFFFF",
-  border:    "#E8E0D0",
-  amber:     "#D4883A",
+  bg: "#FDFAF6",
+  bgSoft: "#F5F0E8",
+  bgCard: "#FFFFFF",
+  border: "#E8E0D0",
+  amber: "#D4883A",
   amberSoft: "#FBF0E0",
-  text:      "#2C2416",
-  textMid:   "#6B5B45",
+  text: "#2C2416",
+  textMid: "#6B5B45",
   textMuted: "#A0907A",
-  green:     "#4A9B6F",
-  red:       "#D05A4A",
+  green: "#4A9B6F",
+  red: "#D05A4A",
 };
 
 
@@ -57,7 +57,7 @@ function Card({ r, navigate }) {
           transition: "transform 0.3s ease",
           transform: hovered ? "scale(1.05)" : "scale(1)",
         }} />
-        
+
         <div style={{
           position: "absolute",
           bottom: 0,
@@ -68,7 +68,7 @@ function Card({ r, navigate }) {
         }} />
 
         <div style={{
-          position:"absolute", top:14, left:14,
+          position: "absolute", top: 14, left: 14,
           background: r.tagColor,
           color: "#fff",
           fontSize: 11,
@@ -81,7 +81,7 @@ function Card({ r, navigate }) {
         }}>{r.tag}</div>
 
         <div style={{
-          position:"absolute", top:14, right:14,
+          position: "absolute", top: 14, right: 14,
           background: "rgba(255,255,255,0.95)",
           backdropFilter: "blur(8px)",
           color: lowSeats ? C.red : C.green,
@@ -101,7 +101,7 @@ function Card({ r, navigate }) {
 
         {/* Overlay bottom row: location + hours */}
         <div style={{
-          position:"absolute",
+          position: "absolute",
           bottom: 12,
           left: 14,
           right: 14,
@@ -153,10 +153,10 @@ function Card({ r, navigate }) {
       </div>
 
       <div style={{ padding: "18px 20px 20px" }}>
-        <div style={{ 
-          display: "flex", 
-          justifyContent: "space-between", 
-          alignItems: "flex-start", 
+        <div style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
           marginBottom: 8,
           gap: 12,
         }}>
@@ -201,8 +201,8 @@ function Card({ r, navigate }) {
           paddingBottom: 16,
           borderBottom: `1px solid ${C.border}`,
         }}>
-          <span style={{ 
-            fontSize: 14, 
+          <span style={{
+            fontSize: 14,
             color: C.amber,
             marginTop: 2,
           }}>📍</span>
@@ -216,9 +216,9 @@ function Card({ r, navigate }) {
           }}>{r.address}</p>
         </div>
 
-        <div style={{ 
-          display: "flex", 
-          justifyContent: "space-between", 
+        <div style={{
+          display: "flex",
+          justifyContent: "space-between",
           alignItems: "center",
           gap: 12,
         }}>
@@ -228,7 +228,7 @@ function Card({ r, navigate }) {
               ₹{r.reservationFee || 0}
             </span>
           </div>
-          
+
           <div style={{ display: "flex", gap: 8 }}>
             <button
               onClick={(e) => { e.stopPropagation(); setShowShareModal(true); }}
@@ -297,7 +297,7 @@ export default function Explore() {
   const [nearbyLoading, setNearbyLoading] = useState(false);
   const [geoError, setGeoError] = useState("");
 
-  const filters = ["All","Nearby","Instant Book","Top Rated","Pre-Order","Sort by Distance"];
+  const filters = ["All", "Nearby", "Instant Book", "Top Rated", "Pre-Order", "Sort by Distance"];
 
   // Silent background location detect on page load
   useEffect(() => {
@@ -344,7 +344,7 @@ export default function Explore() {
   useEffect(() => {
     if (!userLocation || rawRestaurants.length === 0) return;
     setRestaurants(mapRaw(rawRestaurants));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userLocation]);
 
   // Helper: Haversine distance in km between two lat/lng points
@@ -375,7 +375,7 @@ export default function Explore() {
         area: r.address?.area || r.address?.city || "Pune",
         address: [r.address?.street, r.address?.area, r.address?.city].filter(Boolean).join(", "),
         rating: r.avgRating || "New",
-        seats: r.totalSeats || 0,
+        seats: r.availableSeats ?? r.totalSeats ?? 0,
         price: r.priceRange === "budget" ? "Up to ₹1000" : r.priceRange === "moderate" ? "₹1000 - ₹2000" : r.priceRange === "expensive" ? "₹2000 - ₹3000" : "₹3000+",
         tag: r.isFeatured ? "Featured" : r.avgRating >= 4.5 ? "Top Rated" : r.instantBookingEnabled ? "Instant Book" : "New",
         tagColor: r.isFeatured ? "#8B5CF6" : r.avgRating >= 4.5 ? C.amber : r.instantBookingEnabled ? C.green : C.blue,
@@ -463,7 +463,7 @@ export default function Explore() {
   const isLoadingAny = loadingData || nearbyLoading;
 
   return (
-    <div style={{ background: C.bg, minHeight:"100vh", fontFamily:"'DM Sans', sans-serif" }}>
+    <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'DM Sans', sans-serif" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@400;500;600;700&display=swap');
         * { box-sizing:border-box; margin:0; padding:0; }
@@ -503,9 +503,9 @@ export default function Explore() {
 
         <div style={{ display: "flex", gap: 28 }}>
           {[
-            {label: "Home", path: "/"},
-            {label: "How It Works", path: "/#how"},
-            {label: "For Restaurants", path: "/#restaurants"}
+            { label: "Home", path: "/" },
+            { label: "How It Works", path: "/#how" },
+            { label: "For Restaurants", path: "/#restaurants" }
           ].map(item => (
             <span key={item.label} style={{
               color: C.textMuted, fontSize: 14, fontWeight: 500,
@@ -597,7 +597,7 @@ export default function Explore() {
             letterSpacing: -0.5,
           }}>
             Discover Pune's<br />
-            <span style={{ 
+            <span style={{
               fontStyle: "italic",
               background: "linear-gradient(135deg, #F2B865, #E8A045)",
               WebkitBackgroundClip: "text",
@@ -822,7 +822,7 @@ export default function Explore() {
           gap: 24,
         }}>
           {isLoadingAny ? (
-            <div style={{ gridColumn:"1/-1", textAlign:"center", padding:"60px 0", color:C.textMuted, fontSize:15 }}>
+            <div style={{ gridColumn: "1/-1", textAlign: "center", padding: "60px 0", color: C.textMuted, fontSize: 15 }}>
               {nearbyLoading ? "Fetching restaurants near you…" : "Loading restaurants…"}
             </div>
           ) : shown.length === 0 ? (

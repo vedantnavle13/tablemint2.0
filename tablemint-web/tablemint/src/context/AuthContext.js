@@ -9,7 +9,7 @@ export const useAuth = () => {
   return context;
 };
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
 axios.defaults.baseURL = API_URL;
 axios.defaults.timeout = 60000; // 60s — handles Render free-tier cold start
 

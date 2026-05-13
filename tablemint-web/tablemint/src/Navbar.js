@@ -47,8 +47,11 @@ export default function Navbar() {
       : []),
   ];
 
-  const isActive = (path) =>
-    path === "/" ? location.pathname === "/" : location.pathname.startsWith(path.split("#")[0]) && path !== "/";
+  const isActive = (path) => {
+    // Hash-anchor links (e.g. /#how) should never show as active
+    if (path.includes("#")) return false;
+    return path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
+  };
 
   const handleNavClick = (item) => {
     if (item.path.startsWith("/#")) {

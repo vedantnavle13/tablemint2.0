@@ -1626,7 +1626,7 @@ function RevenueView() {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    fetch('http://localhost:5000/api/admin/owner/revenue', {
+    fetch('http://localhost:5001/api/admin/owner/revenue', {
       headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
     })
       .then(r => r.json())

@@ -48,10 +48,36 @@ exports.getAllRestaurants = catchAsync(async (req, res, next) => {
     Restaurant.countDocuments(query),
   ]);
 
+  // Compute available seats per restaurant for current time window
+  const Reservation = require('../models/Reservation');
+  const now = new Date();
+  const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+
+  const activeReservations = await Reservation.aggregate([
+    {
+      $match: {
+        restaurant: { $in: restaurants.map(r => r._id) },
+        scheduledAt: { $gte: now, $lte: twoHoursLater },
+        status: { $in: ['pending', 'confirmed', 'seated'] }
+      }
+    },
+    { $group: { _id: '$restaurant', bookedGuests: { $sum: '$numberOfGuests' } } }
+  ]);
+
+  const bookedMap = {};
+  activeReservations.forEach(r => { bookedMap[r._id.toString()] = r.bookedGuests; });
+
+  const restaurantsWithSeats = restaurants.map(r => {
+    const obj = r.toObject({ virtuals: true });
+    const booked = bookedMap[r._id.toString()] || 0;
+    obj.availableSeats = Math.max(0, (obj.totalSeats || 0) - booked);
+    return obj;
+  });
+
   res.status(200).json({
     status: 'success', results: restaurants.length, total,
     totalPages: Math.ceil(total / parseInt(limit)), currentPage: parseInt(page),
-    data: { restaurants },
+    data: { restaurants: restaurantsWithSeats },
   });
 });
 
@@ -343,11 +369,11 @@ exports.createRestaurantAdmin = catchAsync(async (req, res, next) => {
    * Shuffled to prevent predictable patterns.
    */
   const generateSecurePassword = () => {
-    const upper   = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-    const lower   = 'abcdefghijkmnopqrstuvwxyz';
-    const digits  = '23456789';
+    const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    const lower = 'abcdefghijkmnopqrstuvwxyz';
+    const digits = '23456789';
     const special = '!@#$%^';
-    const all     = upper + lower + digits + special;
+    const all = upper + lower + digits + special;
     const mandatory = [
       upper[Math.floor(Math.random() * upper.length)],
       lower[Math.floor(Math.random() * lower.length)],
