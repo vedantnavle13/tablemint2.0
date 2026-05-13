@@ -88,7 +88,7 @@ exports.register = catchAsync(async (req, res, next) => {
     phone,
     password,
     role: userRole,
-    isVerified: false,
+    isVerified: true,   // Auto-verified — email OTP is informational only
     otp: hashedOtp,
     otpExpires: new Date(Date.now() + 10 * 60 * 1000),
   });
@@ -188,13 +188,7 @@ exports.login = catchAsync(async (req, res, next) => {
     return next(new AppError('Account is deactivated. Please contact support.', 401));
   }
 
-  // Block login until email is verified (superadmin is exempt — created from terminal)
-  if (!user.isVerified && user.role !== 'superadmin') {
-    return next(new AppError(
-      'Your email address has not been verified. Please check your inbox for the verification code.',
-      403
-    ));
-  }
+  // OTP gate removed — users are auto-verified on registration
 
   user.lastLogin = new Date();
   await user.save({ validateBeforeSave: false });

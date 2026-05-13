@@ -270,3 +270,22 @@
 {"level":"info","message":"[Review] Created by user 69d859a82a6a4c753a24e221 for restaurant 69d865de240d3bae8d2b7044 | booking 69da969e5d30c09199367fe0 | 0 image(s).","timestamp":"2026-04-12 16:35:43"}
 {"level":"info","message":"[ML] Sentiment saved for review 69db7c868e623f827eff959e: POSITIVE","timestamp":"2026-04-12 16:35:48"}
 {"level":"info","message":"Email sent: <a920157b-63e6-db39-ad8b-02eef2150b56@tablemint.com>","timestamp":"2026-04-15 07:17:31"}
+{"level":"info","message":"Email sent: <8034f8a9-25dd-5ba5-e790-30c0b47727c2@gmail.com>","timestamp":"2026-05-13 11:28:43"}
+{"level":"info","message":"Admin credentials emailed to vedantnavale13@gmail.com for restaurant akola-restro","timestamp":"2026-05-13 11:28:43"}
+{"level":"info","message":"Email sent: <7175e37a-2a3a-d627-cc81-e80586543d70@gmail.com>","timestamp":"2026-05-13 11:37:02"}
+{"level":"info","message":"Email sent: <6711327d-327d-22d3-ef0e-e605d9b9d288@gmail.com>","timestamp":"2026-05-13 11:57:22"}
+{"level":"info","message":"Email sent: <09fe3fe0-36dc-824c-f500-d1057a36696d@gmail.com>","timestamp":"2026-05-13 14:41:19"}
+{"level":"info","message":"Email sent: <1c8436bd-562e-ecfa-695f-e8801d146173@gmail.com>","timestamp":"2026-05-13 14:44:05"}
+{"level":"info","message":"Email sent: <0dfba2ab-3b97-2fd0-4759-80d3004a4e9e@gmail.com>","timestamp":"2026-05-13 14:44:18"}
+{"level":"info","message":"Email sent: <1320214f-c236-51fc-93f1-656f2674f613@gmail.com>","timestamp":"2026-05-13 14:44:21"}
+{"level":"info","message":"Email sent: <38962065-7585-8b02-95a7-367992ae1cea@gmail.com>","timestamp":"2026-05-13 14:44:32"}
+{"level":"info","message":"Email sent: <77859c9c-b837-6c13-2004-7adf44d3cd42@gmail.com>","timestamp":"2026-05-13 14:44:34"}
+{"level":"info","message":"Email sent: <af443283-d590-b0b1-247a-0eb6fa2760f7@gmail.com>","timestamp":"2026-05-13 14:44:36"}
+{"level":"info","message":"Email sent: <be0029bf-0645-6b30-32da-23f1fbf021cb@gmail.com>","timestamp":"2026-05-13 14:44:38"}
+{"level":"error","message":"400 - Cannot cancel a reservation with status: cancelled. - /api/reservations/6a041992e2fe3e4c326b9baa/cancel","timestamp":"2026-05-13 14:44:38"}
+{"level":"info","message":"Email sent: <763a77af-f584-162b-33df-de5bec437753@gmail.com>","timestamp":"2026-05-13 14:44:45"}
+{"level":"info","message":"Email sent: <f6bfd538-ecb8-c124-5445-ebe0cd87ecfb@gmail.com>","timestamp":"2026-05-13 14:44:47"}
+{"level":"info","message":"Email sent: <2b17e068-20a6-8d92-f0f6-649f06e438a4@gmail.com>","timestamp":"2026-05-13 14:44:50"}
+{"level":"error","message":"400 - Cannot cancel a reservation with status: cancelled. - /api/reservations/6a035d098d730e73b2d01328/cancel","timestamp":"2026-05-13 14:44:50"}
+{"level":"info","message":"Email sent: <eb207d10-af95-52f1-0b6e-df97508e757e@gmail.com>","timestamp":"2026-05-13 14:44:55"}
+{"level":"info","message":"Email sent: <cc1a70e7-adb2-233c-e63c-83efb9e38f60@gmail.com>","timestamp":"2026-05-13 16:58:07"}

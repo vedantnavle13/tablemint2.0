@@ -221,3 +221,5 @@
 {"level":"error","message":"400 - Not enough seats available for this time slot. Only 2 seats available. Please choose a different time. - /api/reservations","timestamp":"2026-04-12 00:15:04"}
 {"level":"error","message":"400 - Cannot seat yet. Seating opens in 5413 minutes (30 min before scheduled time). - /api/admin/reservations/69da96d55d30c09199368026/status","timestamp":"2026-04-12 00:17:04"}
 {"level":"error","message":"400 - Cannot seat yet. Seating opens in 5377 minutes (30 min before scheduled time). - /api/admin/reservations/69da96d55d30c09199368026/status","timestamp":"2026-04-12 00:53:16"}
+{"level":"error","message":"400 - Cannot cancel a reservation with status: cancelled. - /api/reservations/6a041992e2fe3e4c326b9baa/cancel","timestamp":"2026-05-13 14:44:38"}
+{"level":"error","message":"400 - Cannot cancel a reservation with status: cancelled. - /api/reservations/6a035d098d730e73b2d01328/cancel","timestamp":"2026-05-13 14:44:50"}

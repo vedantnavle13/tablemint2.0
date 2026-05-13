@@ -95,14 +95,14 @@ exports.createReservation = catchAsync(async (req, res, next) => {
     status: type === 'instant' ? 'confirmed' : 'pending',
   });
 
-  try {
-    const populated = await reservation.populate([
-      { path: 'customer', select: 'name email' },
-      { path: 'restaurant', select: 'name' },
-    ]);
+  // Fire-and-forget — email failure must never block the reservation response
+  reservation.populate([
+    { path: 'customer', select: 'name email' },
+    { path: 'restaurant', select: 'name' },
+  ]).then(populated => {
     const template = emailTemplates.reservationConfirmation(populated, populated.restaurant, populated.customer);
-    await sendEmail({ to: req.user.email, ...template });
-  } catch (err) { logger.error('Reservation confirmation email failed:', err.message); }
+    sendEmail({ to: req.user.email, ...template }).catch(err => logger.error('Reservation confirmation email failed:', err.message));
+  }).catch(() => {});
 
   res.status(201).json({ status: 'success', data: { reservation } });
 });
@@ -159,10 +159,9 @@ exports.cancelReservation = catchAsync(async (req, res, next) => {
   reservation.cancelledAt = new Date();
   await reservation.save();
 
-  try {
-    const template = emailTemplates.reservationCancellation(reservation, reservation.restaurant, req.user);
-    await sendEmail({ to: req.user.email, ...template });
-  } catch (err) { logger.error('Cancellation email failed:', err.message); }
+  // Fire-and-forget
+  sendEmail({ to: req.user.email, ...emailTemplates.reservationCancellation(reservation, reservation.restaurant, req.user) })
+    .catch(err => logger.error('Cancellation email failed:', err.message));
 
   res.status(200).json({ status: 'success', data: { reservation } });
 });
@@ -294,20 +293,12 @@ exports.updateReservationStatus = catchAsync(async (req, res, next) => {
 
   await reservation.save();
 
-  // ── Send status update email to customer ──────────────────────────────────
-  try {
-    const customerEmail = reservation.customer?.email;
-    if (customerEmail) {
-      const template = emailTemplates.reservationStatusUpdate(
-        reservation,
-        reservation.restaurant,
-        reservation.customer,
-        prevStatus,
-        status
-      );
-      await sendEmail({ to: customerEmail, ...template });
-    }
-  } catch (err) { logger.error('Status update email failed:', err.message); }
+  // Fire-and-forget status update email
+  const customerEmail = reservation.customer?.email;
+  if (customerEmail) {
+    sendEmail({ to: customerEmail, ...emailTemplates.reservationStatusUpdate(reservation, reservation.restaurant, reservation.customer, prevStatus, status) })
+      .catch(err => logger.error('Status update email failed:', err.message));
+  }
 
   res.status(200).json({ status: 'success', data: { reservation } });
 });
@@ -363,11 +354,11 @@ exports.notifyCustomer = catchAsync(async (req, res, next) => {
   const customerEmail = reservation.customer?.email;
   if (!customerEmail) return next(new AppError('Customer email not found.', 500));
 
-  // Send the email — email address is never returned in the response
-  await sendEmail({
+  // Fire-and-forget — email address is never returned in the response
+  sendEmail({
     to: customerEmail,
     ...emailTemplates.customerNotification(reservation, reservation.restaurant, reservation.customer, message.trim()),
-  });
+  }).catch(err => logger.error('Customer notification email failed:', err.message));
 
   // Log the notification
   reservation.notificationLog.push({

@@ -151,14 +151,11 @@ exports.createRestaurant = catchAsync(async (req, res, next) => {
     await User.findByIdAndUpdate(req.user.id, { $addToSet: { restaurants: restaurant._id } });
   }
 
-  try {
-    const owner = await User.findById(req.user.id);
+  // Fire-and-forget OTP email
+  User.findById(req.user.id).then(owner => {
     const template = emailTemplates.restaurantVerificationOtp(restaurant, otp, owner.name);
-    await sendEmail({ to: owner.email, ...template });
-    logger.info(`OTP email sent to ${owner.email} for: ${restaurant.name}`);
-  } catch (e) {
-    logger.error(`Failed to send OTP email:`, e);
-  }
+    sendEmail({ to: owner.email, ...template }).catch(e => logger.error('Failed to send OTP email:', e.message));
+  }).catch(() => {});
 
   res.status(201).json({
     status: 'success',
@@ -328,11 +325,11 @@ exports.regenerateOtp = catchAsync(async (req, res, next) => {
   restaurant.verificationOtpExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   await restaurant.save({ validateBeforeSave: false });
 
-  try {
-    const owner = await User.findById(restaurant.owner);
+  // Fire-and-forget regenerated OTP email
+  User.findById(restaurant.owner).then(owner => {
     const template = emailTemplates.restaurantOtpRegenerated(restaurant, otp, owner.name);
-    await sendEmail({ to: owner.email, ...template });
-  } catch (e) { logger.error(`Failed to send regenerated OTP email:`, e); }
+    sendEmail({ to: owner.email, ...template }).catch(e => logger.error('Failed to send regenerated OTP email:', e.message));
+  }).catch(() => {});
 
   res.status(200).json({ status: 'success', data: { verificationOtp: otp }, message: 'New OTP sent to your email.' });
 });
@@ -401,15 +398,9 @@ exports.createRestaurantAdmin = catchAsync(async (req, res, next) => {
     await restaurant.save({ validateBeforeSave: false });
   }
 
-  // Email the admin their temporary credentials
-  try {
-    const tpl = emailTemplates.adminWelcome(admin, restaurant, rawPassword);
-    await sendEmail({ to: admin.email, ...tpl });
-    logger.info(`Admin credentials emailed to ${admin.email} for restaurant ${restaurant.name}`);
-  } catch (e) {
-    logger.error(`Failed to send admin welcome email to ${admin.email}:`, e.message);
-    // Don't fail the request — admin was created; owner can share credentials manually
-  }
+  // Fire-and-forget admin welcome email
+  sendEmail({ to: admin.email, ...emailTemplates.adminWelcome(admin, restaurant, rawPassword) })
+    .catch(e => logger.error(`Failed to send admin welcome email to ${admin.email}:`, e.message));
 
   res.status(201).json({
     status: 'success',
