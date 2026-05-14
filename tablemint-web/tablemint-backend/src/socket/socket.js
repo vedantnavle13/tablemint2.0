@@ -30,6 +30,18 @@ module.exports = function initSocket(io) {
     io.on('connection', (socket) => {
         console.log(`🔌 Socket connected: ${socket.user.name} (${socket.id})`);
 
+        // ─── joinRestaurant: admins listen for new bookings at their restaurant ──
+        socket.on('joinRestaurant', ({ restaurantId }) => {
+            if (!restaurantId) return;
+            socket.join(`restaurant_${restaurantId}`);
+            console.log(`🏢 ${socket.user.name} joined restaurant_${restaurantId}`);
+        });
+
+        socket.on('leaveRestaurant', ({ restaurantId }) => {
+            if (!restaurantId) return;
+            socket.leave(`restaurant_${restaurantId}`);
+        });
+
         // ─── joinGroup ────────────────────────────────────────────────────────
         socket.on('joinGroup', async ({ groupId }) => {
             try {
