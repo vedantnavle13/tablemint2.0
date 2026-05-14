@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from './context/AuthContext';
 import { apiCall } from './services/api';
 import AdminInsights from './components/AdminInsights';
+import { io } from 'socket.io-client';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const C = {
@@ -131,6 +132,45 @@ function DashboardTab({ user, onTabChange }) {
     }).catch(() => { }).finally(() => setLR(false));
   }, []);
 
+  // ── Live socket updates: when a customer makes a new booking, push it in ──
+  useEffect(() => {
+    if (!restaurant?._id) return;
+
+    const token = localStorage.getItem('token_owner') || localStorage.getItem('token');
+    if (!token) return;
+
+    const SOCKET_URL = (process.env.REACT_APP_SOCKET_URL || 'http://localhost:5000').replace(/\/$/, '');
+    const socket = io(SOCKET_URL, {
+      auth: { token },
+      transports: ['websocket', 'polling'],
+    });
+
+    socket.on('connect', () => {
+      console.log('🔌 Dashboard socket connected');
+      socket.emit('joinRestaurant', { restaurantId: restaurant._id });
+    });
+
+    socket.on('newReservation', (newRes) => {
+      console.log('📩 New reservation received:', newRes._id);
+      // Add to top of the list if it's today
+      const today = new Date().setHours(0, 0, 0, 0);
+      if (new Date(newRes.scheduledAt).getTime() >= today) {
+        setRes(prev => [newRes, ...prev].slice(0, 5));
+      }
+      // Refresh stats
+      apiCall("/admin/analytics").then(r => setStats(r.data)).catch(() => { });
+    });
+
+    socket.on('connect_error', (err) => {
+      console.error('Socket connect error:', err.message);
+    });
+
+    return () => {
+      socket.emit('leaveRestaurant', { restaurantId: restaurant._id });
+      socket.disconnect();
+    };
+  }, [restaurant?._id]);
+
   const greeting = () => { const h = new Date().getHours(); return h < 12 ? "Good Morning" : h < 17 ? "Good Afternoon" : "Good Evening"; };
 
   return (
@@ -165,7 +205,7 @@ function DashboardTab({ user, onTabChange }) {
           <div style={{ overflowX: "auto" }}>
             <table style={{ borderCollapse: "collapse", width: "100%" }}>
               <thead><tr style={{ background: C.bgSoft, borderBottom: `2px solid ${C.border}` }}>
-                {["TIME", "CUSTOMER ID", "GUESTS", "PRE-ORDER", "STATUS"].map(h => (
+                {["TIME", "CUSTOMER ID", "GUESTS", "PRE-ORDER", "STATUS", ""].map(h => (
                   <th key={h} style={{ padding: "13px 16px", textAlign: "left", fontSize: 11, fontWeight: 700, color: C.textMuted, letterSpacing: 1 }}>{h}</th>
                 ))}
               </tr></thead>
@@ -186,12 +226,20 @@ function DashboardTab({ user, onTabChange }) {
                         <div>
                           <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>₹{r.preOrderTotal}</div>
                           <div style={{ fontSize: 12, color: C.textMuted }}>{r.preOrderItems.length} item(s)</div>
-                          <button onClick={() => setDetail(r)} style={{ fontSize: 12, color: C.amber, background: "transparent", border: "none", cursor: "pointer", fontWeight: 600, textDecoration: "underline", padding: 0 }}>View →</button>
                         </div>
                       ) : <span style={{ fontSize: 13, color: C.textMuted, fontStyle: "italic" }}>No pre-order</span>}
                     </td>
                     <td style={{ padding: "14px 16px" }}>
                       <Tag label={statusLabel(r.status)} color={statusColor(r.status)} />
+                    </td>
+                    <td style={{ padding: "14px 16px" }}>
+                      <button onClick={() => setDetail(r)} style={{
+                        padding: "6px 14px", background: C.amberSoft, border: `1px solid ${C.amber}40`,
+                        borderRadius: 8, color: C.amber, fontSize: 12, fontWeight: 700,
+                        cursor: "pointer", fontFamily: "'DM Sans', sans-serif", whiteSpace: "nowrap"
+                      }}>
+                        View More
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -230,27 +278,102 @@ function DashboardTab({ user, onTabChange }) {
 // ════════════════════════════════════════════════════════════════════════════
 // ── RESERVATIONS TAB ──────────────────────────────────────────────────────────
 // ════════════════════════════════════════════════════════════════════════════
-function PreOrderModal({ reservation, onClose }) {
-  const items = reservation.preOrderItems || [];
+function PreOrderModal({ reservation: r, onClose }) {
+  const [showQR, setShowQR] = useState(false);
+  const items = r.preOrderItems || [];
+  const isInstant = r.bookingMode === "instant";
+  const reservationFee = r.reservationFee || 0;
+  const preOrderTotal = r.preOrderTotal || 0;
+  const grandTotal = reservationFee + preOrderTotal;
+  const qrData = `TABLEMINT|${r._id}|${r.customer?.customerId || ""}|${r.customer?.name || ""}|₹${grandTotal}`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrData)}&bgcolor=ffffff&color=2C1A08&margin=10`;
+
   return (
-    <Modal title="Pre-Order Details" subtitle={`${reservation.customer?.customerId || reservation.customer?.name || "Customer"} · ${fmtDate(reservation.scheduledAt)}`} onClose={onClose}>
-      {items.length > 0 ? (
-        <>
-          {items.map((item, idx) => (
-            <div key={idx} style={{ display: "flex", justifyContent: "space-between", padding: "12px 0", borderBottom: idx < items.length - 1 ? `1px solid ${C.border}` : "none" }}>
+    <Modal
+      title="Booking Details"
+      subtitle={`#${r._id.slice(-8).toUpperCase()} · ${r.customer?.name || r.customer?.customerId || "Customer"}`}
+      onClose={onClose}
+      width={560}
+    >
+      {/* Booking type + arrival info */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
+        {[
+          { label: "Booking Type", value: isInstant ? "⚡ Instant" : "📅 Scheduled" },
+          { label: "Arrival Time", value: fmtTime(r.scheduledAt) },
+          { label: "Guests", value: `👥 ${r.numberOfGuests}` },
+        ].map(({ label, value }) => (
+          <div key={label} style={{ background: C.bgSoft, borderRadius: 10, padding: "12px 14px" }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>{label}</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Pre-order items */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 10 }}>Food Items Ordered</div>
+        {items.length > 0 ? items.map((item, idx) => (
+          <div key={idx} style={{
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+            padding: "11px 0", borderBottom: idx < items.length - 1 ? `1px solid ${C.border}` : "none"
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 6, height: 6, borderRadius: "50%", background: C.amber, flexShrink: 0 }} />
               <div>
                 <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{item.name}</div>
-                <div style={{ fontSize: 12, color: C.textMuted }}>Qty: {item.quantity} × ₹{item.price}</div>
+                <div style={{ fontSize: 12, color: C.textMuted }}>×{item.quantity} &nbsp;·&nbsp; ₹{item.price} each</div>
               </div>
-              <div style={{ fontWeight: 700, color: C.amber }}>₹{item.quantity * item.price}</div>
             </div>
-          ))}
-          <div style={{ display: "flex", justifyContent: "space-between", padding: "14px 0", borderTop: `2px solid ${C.border}`, marginTop: 4 }}>
-            <span style={{ fontSize: 16, fontWeight: 700, color: C.text }}>Total</span>
-            <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 26, fontWeight: 700, color: C.amber }}>₹{reservation.preOrderTotal || 0}</span>
+            <div style={{ fontWeight: 700, color: C.text, fontSize: 14 }}>₹{item.quantity * item.price}</div>
           </div>
-        </>
-      ) : <p style={{ textAlign: "center", padding: "32px 0", color: C.textMuted }}>No pre-order items.</p>}
+        )) : (
+          <div style={{ padding: "16px 0", color: C.textMuted, fontSize: 13, fontStyle: "italic" }}>No pre-ordered items</div>
+        )}
+      </div>
+
+      {/* Bill summary */}
+      <div style={{ background: "#FBF0E0", borderRadius: 12, padding: "16px 18px", marginBottom: 20 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 12 }}>Bill Summary</div>
+        {[
+          { label: "Reservation Fee", value: `₹${reservationFee}` },
+          { label: "Pre-order Total", value: `₹${preOrderTotal}` },
+        ].map(({ label, value }) => (
+          <div key={label} style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+            <span style={{ fontSize: 13, color: C.textMid }}>{label}</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{value}</span>
+          </div>
+        ))}
+        <div style={{ borderTop: `1.5px solid ${C.amber}40`, marginTop: 10, paddingTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>Grand Total</span>
+          <span style={{ fontFamily: "'Playfair Display', serif", fontSize: 24, fontWeight: 700, color: C.amber }}>₹{grandTotal}</span>
+        </div>
+      </div>
+
+      {/* QR Code */}
+      <div style={{ textAlign: "center" }}>
+        {!showQR ? (
+          <button onClick={() => setShowQR(true)} style={{
+            padding: "11px 28px", background: C.amber, border: "none", borderRadius: 10,
+            color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer",
+            fontFamily: "'DM Sans', sans-serif", width: "100%"
+          }}>
+            🔲 Generate QR Code
+          </button>
+        ) : (
+          <div style={{ background: C.bgSoft, borderRadius: 16, padding: 20 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 14 }}>Booking QR Code</div>
+            <img
+              src={qrUrl}
+              alt="Booking QR"
+              style={{ width: 180, height: 180, borderRadius: 10, border: `1px solid ${C.border}` }}
+            />
+            <div style={{ marginTop: 10, fontSize: 12, color: C.textMuted }}>Show this to the customer for verification</div>
+            <div style={{ marginTop: 6, fontSize: 13, fontWeight: 700, color: C.text, fontFamily: "monospace" }}>
+              ₹{grandTotal} · {r.customer?.customerId || r._id.slice(-8).toUpperCase()}
+            </div>
+          </div>
+        )}
+      </div>
     </Modal>
   );
 }
