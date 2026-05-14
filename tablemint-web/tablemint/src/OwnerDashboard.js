@@ -962,7 +962,7 @@ function InfoTab({ restaurant }) {
                   <div key={opt} onClick={() => {
                     const current = form.dietaryOptions || [];
                     const exists = current.some(d => (d.name || d) === opt);
-                    f("dietaryOptions")(exists ? current.filter(d => (d.name || d) !== opt) : [...current, { name: opt }]);
+                    f("dietaryOptions")(exists ? current.filter(d => (d.name || d) !== opt) : [...current, opt]);
                   }} style={{
                     padding: "7px 16px", borderRadius: 20, cursor: "pointer", fontSize: 13, fontWeight: 600,
                     background: selected ? C.amber : C.bgSoft,
