@@ -1,11 +1,11 @@
 'use strict';
-const Brevo = require('@getbrevo/brevo');
+const SibApiV3Sdk = require('sib-api-v3-sdk');
 const logger = require('./logger');
 
-// ─── Brevo Transactional Email HTTP API ───────────────────────────────────────
-// ✅ No SMTP — uses HTTPS (port 443), never blocked by Render free tier
-// ✅ No custom domain required — just verify your sender email in Brevo dashboard
-// ✅ Free tier: 300 emails/day, sends to ANY recipient worldwide
+// ─── Brevo Transactional Email (sib-api-v3-sdk) ───────────────────────────────
+// Uses HTTPS (port 443) — never blocked by Render free tier
+// No custom domain required — just verify sender email in Brevo dashboard
+// Free tier: 300 emails/day, any recipient worldwide
 // ─────────────────────────────────────────────────────────────────────────────
 let _apiInstance = null;
 
@@ -18,15 +18,18 @@ const getBrevoClient = () => {
     return null;
   }
 
-  const client = Brevo.ApiClient.instance;
-  client.authentications['api-key'].apiKey = apiKey;
-  _apiInstance = new Brevo.TransactionalEmailsApi();
+  // Exact pattern from Brevo official Node.js docs
+  const defaultClient = SibApiV3Sdk.ApiClient.instance;
+  const keyAuth = defaultClient.authentications['api-key'];
+  keyAuth.apiKey = apiKey;
+
+  _apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
   return _apiInstance;
 };
 
 /**
- * Send email via Brevo HTTP API.
- * Drop-in replacement — same call signature: { to, subject, html, text }
+ * Send a transactional email via Brevo HTTP API.
+ * Same call signature as before: { to, subject, html, text }
  */
 const sendEmail = async ({ to, subject, html, text }) => {
   const api = getBrevoClient();
@@ -35,26 +38,27 @@ const sendEmail = async ({ to, subject, html, text }) => {
     return;
   }
 
-  const senderEmail = process.env.EMAIL_USER   || 'tablemint2@gmail.com';
-  const senderName  = process.env.EMAIL_NAME   || 'TableMint';
+  const senderEmail = process.env.EMAIL_USER || 'tablemint2@gmail.com';
+  const senderName  = process.env.EMAIL_NAME || 'TableMint';
 
-  const sendSmtpEmail = new Brevo.SendSmtpEmail();
+  const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
   sendSmtpEmail.sender      = { email: senderEmail, name: senderName };
   sendSmtpEmail.to          = [{ email: Array.isArray(to) ? to[0] : to }];
   sendSmtpEmail.subject     = subject;
-  sendSmtpEmail.htmlContent = html  || '<p>(no content)</p>';
+  sendSmtpEmail.htmlContent = html || '<p>(no content)</p>';
   if (text) sendSmtpEmail.textContent = text;
 
   try {
-    const result = await api.sendTransacEmail(sendSmtpEmail);
-    logger.info(`Email sent via Brevo: messageId=${result?.body?.messageId || 'ok'} → ${to}`);
-    return result;
+    const data = await api.sendTransacEmail(sendSmtpEmail);
+    logger.info(`Email sent via Brevo: messageId=${data?.body?.messageId || 'ok'} → ${to}`);
+    return data;
   } catch (error) {
     const msg = error?.response?.body?.message || error.message || 'Unknown Brevo error';
     logger.error(`Brevo email failed: ${msg} → ${to}`);
     throw new Error(`Email delivery failed: ${msg}`);
   }
 };
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Email Templates
