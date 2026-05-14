@@ -826,6 +826,9 @@ function InfoTab({ restaurant }) {
       city: restaurant.address?.city || "Pune",
       pincode: restaurant.address?.pincode || "",
     },
+    specialties: restaurant.specialties || [],
+    dietaryOptions: restaurant.dietaryOptions || [],
+    features: restaurant.features || [],
   });
 
   const f = (key) => (val) => setForm(p => ({ ...p, [key]: val }));
@@ -939,6 +942,63 @@ function InfoTab({ restaurant }) {
               rows={3} placeholder="Tell customers about your restaurant…"
               style={{ ...inp, resize: "vertical" }} />
           </div>
+          {/* Specialties */}
+          <div style={{ gridColumn: "1 / -1" }}>
+            <label style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Specialties <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>(comma separated)</span></label>
+            <input
+              value={(form.specialties || []).join(", ")}
+              onChange={e => f("specialties")(e.target.value.split(",").map(s => s.trim()).filter(Boolean))}
+              placeholder="e.g. Butter Chicken, Biryani, Tandoori Platter"
+              style={inp}
+            />
+          </div>
+          {/* Dietary Options */}
+          <div style={{ gridColumn: "1 / -1" }}>
+            <label style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, display: "block", marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>Dietary Options</label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {["Veg Friendly", "Vegan", "Gluten Free", "Jain", "Halal", "Kosher"].map(opt => {
+                const selected = (form.dietaryOptions || []).some(d => (d.name || d) === opt);
+                return (
+                  <div key={opt} onClick={() => {
+                    const current = form.dietaryOptions || [];
+                    const exists = current.some(d => (d.name || d) === opt);
+                    f("dietaryOptions")(exists ? current.filter(d => (d.name || d) !== opt) : [...current, { name: opt }]);
+                  }} style={{
+                    padding: "7px 16px", borderRadius: 20, cursor: "pointer", fontSize: 13, fontWeight: 600,
+                    background: selected ? C.amber : C.bgSoft,
+                    color: selected ? "#fff" : C.textMid,
+                    border: `1.5px solid ${selected ? C.amber : C.border}`,
+                    userSelect: "none", transition: "all 0.15s"
+                  }}>
+                    {opt}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+          {/* Features */}
+          <div style={{ gridColumn: "1 / -1" }}>
+            <label style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, display: "block", marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>Features</label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {["Parking", "WiFi", "Outdoor Seating", "Live Music", "Private Dining", "Bar", "Kids Friendly", "Pet Friendly", "AC", "Rooftop"].map(feat => {
+                const selected = (form.features || []).includes(feat);
+                return (
+                  <div key={feat} onClick={() => {
+                    const current = form.features || [];
+                    f("features")(current.includes(feat) ? current.filter(x => x !== feat) : [...current, feat]);
+                  }} style={{
+                    padding: "7px 16px", borderRadius: 20, cursor: "pointer", fontSize: 13, fontWeight: 600,
+                    background: selected ? C.amber : C.bgSoft,
+                    color: selected ? "#fff" : C.textMid,
+                    border: `1.5px solid ${selected ? C.amber : C.border}`,
+                    userSelect: "none", transition: "all 0.15s"
+                  }}>
+                    {feat}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
           {/* Instant Booking toggle — full width */}
           <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "center", gap: 10 }}>
             <input type="checkbox" id="instant" checked={form.instantBookingEnabled}
@@ -972,6 +1032,40 @@ function InfoTab({ restaurant }) {
               <div style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{value}</div>
             </div>
           ))}
+
+          {/* Specialties */}
+          {(form.specialties || []).length > 0 && (
+            <div style={{ gridColumn: "1 / -1", padding: 14, background: C.bgSoft, borderRadius: 10 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>Specialties</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {(form.specialties || []).map(s => (
+                  <span key={s} style={{ padding: "4px 12px", background: "#fff", border: `1px solid ${C.border}`, borderRadius: 20, fontSize: 13, color: C.text, fontWeight: 500 }}>{s}</span>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* Dietary Options */}
+          {(form.dietaryOptions || []).length > 0 && (
+            <div style={{ padding: 14, background: C.bgSoft, borderRadius: 10 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>Dietary Options</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {(form.dietaryOptions || []).map(d => (
+                  <span key={d.name || d} style={{ padding: "4px 12px", background: "#E8F5EE", border: "1px solid #4A9B6F40", borderRadius: 20, fontSize: 13, color: "#4A9B6F", fontWeight: 600 }}>{d.name || d}</span>
+                ))}
+              </div>
+            </div>
+          )}
+          {/* Features */}
+          {(form.features || []).length > 0 && (
+            <div style={{ padding: 14, background: C.bgSoft, borderRadius: 10 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>Features</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {(form.features || []).map(feat => (
+                  <span key={feat} style={{ padding: "4px 12px", background: "#FBF0E0", border: `1px solid ${C.amber}40`, borderRadius: 20, fontSize: 13, color: C.amber, fontWeight: 600 }}>{feat}</span>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Google Maps location link — full width */}
           {(() => {
@@ -1626,7 +1720,7 @@ function RevenueView() {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    fetch('http://localhost:5001/api/admin/owner/revenue', {
+    fetch('http://localhost:5000/api/admin/owner/revenue', {
       headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
     })
       .then(r => r.json())
