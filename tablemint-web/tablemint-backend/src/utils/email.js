@@ -50,11 +50,13 @@ const sendEmail = async ({ to, subject, html, text }) => {
 
   try {
     const data = await api.sendTransacEmail(sendSmtpEmail);
-    logger.info(`Email sent via Brevo: messageId=${data?.body?.messageId || 'ok'} → ${to}`);
+    // sib-api-v3-sdk resolves to { response, body } — messageId is in body
+    const msgId = data?.body?.messageId || data?.messageId || JSON.stringify(data)?.slice(0, 80);
+    logger.info(`✅ Email sent via Brevo: messageId=${msgId} → ${to}`);
     return data;
   } catch (error) {
     const msg = error?.response?.body?.message || error.message || 'Unknown Brevo error';
-    logger.error(`Brevo email failed: ${msg} → ${to}`);
+    logger.error(`❌ Brevo email failed: ${msg} → ${to}`);
     throw new Error(`Email delivery failed: ${msg}`);
   }
 };
