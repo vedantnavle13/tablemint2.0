@@ -37,7 +37,7 @@ export default function RegisterPage() {
         setLoading(true);
         try {
             const data = await register({ name, email, phone, password, role: "customer" });
-            navigate(`/login`, { replace: true, state: { message: 'Account created! Please log in.' } });
+            navigate(`/verify-otp?email=${encodeURIComponent(data.email)}`, { replace: true });
         } catch (err) {
             if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
                 setError("Server is waking up — this can take up to 60 seconds on first use. Please try again.");

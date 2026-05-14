@@ -62,12 +62,6 @@ export default function LoginPage() {
             <h1 style={{ fontFamily:"'Playfair Display',serif", fontSize:32, fontWeight:700, color:C.text, marginBottom:8 }}>Welcome back</h1>
             <p style={{ color:C.textMuted, fontSize:14, marginBottom:36 }}>Sign in to browse and book restaurants</p>
 
-            {location.state?.message && (
-                <div style={{ background:"#F0FFF4", border:"1px solid #68D39130", borderRadius:10, padding:"12px 16px", marginBottom:20, fontSize:13, color:"#276749" }}>
-                  ✅ {location.state.message}
-                </div>
-            )}
-
             {error && (
                 <div style={{ background:"#FFF5F5", border:`1px solid ${C.red}30`, borderRadius:10, padding:"12px 16px", marginBottom:20, fontSize:13, color:C.red, lineHeight:1.6 }}>
                   ⚠️ {error}

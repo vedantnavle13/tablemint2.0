@@ -88,7 +88,7 @@ exports.register = catchAsync(async (req, res, next) => {
     phone,
     password,
     role: userRole,
-    isVerified: true,   // Auto-verified — email OTP is informational only
+    isVerified: false,  // must verify via OTP email before logging in
     otp: hashedOtp,
     otpExpires: new Date(Date.now() + 10 * 60 * 1000),
   });
@@ -188,7 +188,13 @@ exports.login = catchAsync(async (req, res, next) => {
     return next(new AppError('Account is deactivated. Please contact support.', 401));
   }
 
-  // OTP gate removed — users are auto-verified on registration
+  // Block login until email is verified (OTP sent on registration via Resend)
+  if (!user.isVerified && user.role !== 'superadmin') {
+    return next(new AppError(
+      'Please verify your email first. Check your inbox for the 6-digit code.',
+      403
+    ));
+  }
 
   user.lastLogin = new Date();
   await user.save({ validateBeforeSave: false });
