@@ -1,65 +1,66 @@
 'use strict';
-const { Resend } = require('resend');
+const Brevo = require('@getbrevo/brevo');
 const logger = require('./logger');
 
-// ─── Resend HTTP SDK — uses HTTPS (port 443), never blocked by Render ────────
-// No SMTP, no port 465/587, no Nodemailer. Resend sends via their API over
-// standard web traffic, which works on every free cloud host.
-let _resend = null;
+// ─── Brevo Transactional Email HTTP API ───────────────────────────────────────
+// ✅ No SMTP — uses HTTPS (port 443), never blocked by Render free tier
+// ✅ No custom domain required — just verify your sender email in Brevo dashboard
+// ✅ Free tier: 300 emails/day, sends to ANY recipient worldwide
+// ─────────────────────────────────────────────────────────────────────────────
+let _apiInstance = null;
 
-const getResend = () => {
-  if (_resend) return _resend;
-  const apiKey = process.env.RESEND_API_KEY;
+const getBrevoClient = () => {
+  if (_apiInstance) return _apiInstance;
+
+  const apiKey = process.env.BREVO_API_KEY;
   if (!apiKey) {
-    logger.error('RESEND_API_KEY is not set — emails will not be sent.');
+    logger.error('BREVO_API_KEY is not set — emails will not be sent.');
     return null;
   }
-  _resend = new Resend(apiKey);
-  return _resend;
+
+  const client = Brevo.ApiClient.instance;
+  client.authentications['api-key'].apiKey = apiKey;
+  _apiInstance = new Brevo.TransactionalEmailsApi();
+  return _apiInstance;
 };
 
 /**
- * Send email via Resend HTTP API.
- * Drop-in replacement for the old Nodemailer sendEmail():
- *   same call signature → { to, subject, html }
- *
- * FROM address rules (Resend free tier):
- *   - Without verified domain: must use  onboarding@resend.dev
- *   - With verified domain:    use any   noreply@yourdomain.com
+ * Send email via Brevo HTTP API.
+ * Drop-in replacement — same call signature: { to, subject, html, text }
  */
 const sendEmail = async ({ to, subject, html, text }) => {
-  const resend = getResend();
-  if (!resend) {
-    logger.warn(`Email skipped (no RESEND_API_KEY): ${subject} → ${to}`);
+  const api = getBrevoClient();
+  if (!api) {
+    logger.warn(`Email skipped (no BREVO_API_KEY): ${subject} → ${to}`);
     return;
   }
 
-  const from = process.env.EMAIL_FROM || 'TableMint <onboarding@resend.dev>';
+  const senderEmail = process.env.EMAIL_USER   || 'tablemint2@gmail.com';
+  const senderName  = process.env.EMAIL_NAME   || 'TableMint';
 
-  const { data, error } = await resend.emails.send({
-    from,
-    to:      Array.isArray(to) ? to : [to],   // Resend expects an array
-    subject,
-    html:    html  || '<p>(no content)</p>',
-    text:    text  || undefined,
-  });
+  const sendSmtpEmail = new Brevo.SendSmtpEmail();
+  sendSmtpEmail.sender      = { email: senderEmail, name: senderName };
+  sendSmtpEmail.to          = [{ email: Array.isArray(to) ? to[0] : to }];
+  sendSmtpEmail.subject     = subject;
+  sendSmtpEmail.htmlContent = html  || '<p>(no content)</p>';
+  if (text) sendSmtpEmail.textContent = text;
 
-  if (error) {
-    // Resend returns structured errors — log them clearly
-    logger.error(`Resend email failed [${error.name}]: ${error.message} → ${to}`);
-    throw new Error(`Email delivery failed: ${error.message}`);
+  try {
+    const result = await api.sendTransacEmail(sendSmtpEmail);
+    logger.info(`Email sent via Brevo: messageId=${result?.body?.messageId || 'ok'} → ${to}`);
+    return result;
+  } catch (error) {
+    const msg = error?.response?.body?.message || error.message || 'Unknown Brevo error';
+    logger.error(`Brevo email failed: ${msg} → ${to}`);
+    throw new Error(`Email delivery failed: ${msg}`);
   }
-
-  logger.info(`Email sent via Resend: id=${data.id} → ${to}`);
-  return data;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Email Templates — preserved exactly, no changes needed
+// Email Templates
 // ─────────────────────────────────────────────────────────────────────────────
 const emailTemplates = {
 
-  // ── Customer: reservation confirmed ────────────────────────────────────────
   reservationConfirmation: (reservation, restaurant, user) => ({
     subject: `Reservation Confirmed – ${restaurant.name}`,
     html: `
@@ -71,9 +72,7 @@ const emailTemplates = {
         </div>
         <div style="padding:40px;">
           <h2 style="color:#2C2416;font-size:22px;margin:0 0 12px;">Hi ${user.name}, 🎉</h2>
-          <p style="color:#6B5B45;font-size:15px;line-height:1.7;margin-bottom:24px;">
-            Your reservation at <strong>${restaurant.name}</strong> has been confirmed!
-          </p>
+          <p style="color:#6B5B45;font-size:15px;line-height:1.7;margin-bottom:24px;">Your reservation at <strong>${restaurant.name}</strong> has been confirmed!</p>
           <div style="background:#2C2416;border-radius:14px;padding:24px 28px;margin-bottom:28px;">
             <p style="color:rgba(255,255,255,0.5);font-size:12px;text-transform:uppercase;letter-spacing:2px;margin:0 0 14px;">Reservation Details</p>
             <p style="color:#fff;font-size:14px;margin:0 0 8px;"><span style="color:#A0907A;">Restaurant:</span> <strong>${restaurant.name}</strong></p>
@@ -82,16 +81,14 @@ const emailTemplates = {
             <p style="color:#fff;font-size:14px;margin:0 0 8px;"><span style="color:#A0907A;">Guests:</span> <strong>${reservation.numberOfGuests}</strong></p>
             <p style="color:#fff;font-size:14px;margin:0;"><span style="color:#A0907A;">Booking ID:</span> <strong>#${reservation._id.toString().slice(-8).toUpperCase()}</strong></p>
           </div>
-          <p style="color:#A0907A;font-size:13px;line-height:1.7;">Please arrive on time. Contact the restaurant if you need to make changes.</p>
+          <p style="color:#A0907A;font-size:13px;">Please arrive on time. Contact the restaurant if you need to make changes.</p>
         </div>
         <div style="background:#f5ede3;padding:20px 40px;text-align:center;border-top:1px solid #E8E0D0;">
           <p style="color:#A0907A;font-size:12px;margin:0;">© ${new Date().getFullYear()} TableMint — Discover Pune's Finest Tables</p>
         </div>
-      </div>
-    `,
+      </div>`,
   }),
 
-  // ── Customer: reservation cancelled ────────────────────────────────────────
   reservationCancellation: (reservation, restaurant, user) => ({
     subject: `Reservation Cancelled – ${restaurant.name}`,
     html: `
@@ -102,25 +99,18 @@ const emailTemplates = {
           <p style="color:rgba(255,255,255,0.6);font-size:13px;margin:6px 0 0;">Reservation Cancelled</p>
         </div>
         <div style="padding:40px;">
-          <h2 style="color:#2C2416;font-size:22px;margin:0 0 12px;">Hi ${user.name},</h2>
-          <p style="color:#6B5B45;font-size:15px;line-height:1.7;margin-bottom:24px;">
-            Your reservation at <strong>${restaurant.name}</strong> on
-            ${new Date(reservation.scheduledAt).toLocaleDateString('en-IN', { weekday:'long', year:'numeric', month:'long', day:'numeric' })}
-            has been <strong>cancelled</strong>.
-          </p>
-          <p style="color:#A0907A;font-size:13px;">Booking ID: #${reservation._id.toString().slice(-8).toUpperCase()}</p>
-          <p style="color:#A0907A;font-size:13px;">If you have any questions, please contact us.</p>
+          <h2 style="color:#2C2416;margin:0 0 12px;">Hi ${user.name},</h2>
+          <p style="color:#6B5B45;font-size:15px;line-height:1.7;">Your reservation at <strong>${restaurant.name}</strong> on ${new Date(reservation.scheduledAt).toLocaleDateString('en-IN', { weekday:'long', year:'numeric', month:'long', day:'numeric' })} has been <strong>cancelled</strong>.</p>
+          <p style="color:#A0907A;font-size:13px;margin-top:16px;">Booking ID: #${reservation._id.toString().slice(-8).toUpperCase()}</p>
         </div>
         <div style="background:#f5ede3;padding:20px 40px;text-align:center;border-top:1px solid #E8E0D0;">
           <p style="color:#A0907A;font-size:12px;margin:0;">© ${new Date().getFullYear()} TableMint — Discover Pune's Finest Tables</p>
         </div>
-      </div>
-    `,
+      </div>`,
   }),
 
-  // ── Customer: OTP verification (welcome email) ──────────────────────────────
   otpVerification: (user, otp) => ({
-    subject: 'TableMint – Welcome! Your Verification Code',
+    subject: 'TableMint – Verify Your Email',
     html: `
       <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:600px;margin:0 auto;background:#fff8f0;border-radius:16px;overflow:hidden;">
         <div style="background:linear-gradient(135deg,#2C2416,#6B5B45);padding:36px 40px;text-align:center;">
@@ -131,8 +121,8 @@ const emailTemplates = {
         <div style="padding:40px;">
           <h2 style="color:#2C2416;font-size:22px;margin:0 0 12px;">Hi ${user.name}, welcome! 👋</h2>
           <p style="color:#6B5B45;font-size:15px;line-height:1.7;margin-bottom:32px;">
-            Your TableMint account has been created! Here is your verification code
-            (expires in <strong>10 minutes</strong>).
+            You're almost there! Use the code below to verify your TableMint account.
+            This code expires in <strong>10 minutes</strong>.
           </p>
           <div style="background:#2C2416;border-radius:14px;padding:28px;text-align:center;margin-bottom:32px;">
             <p style="color:rgba(255,255,255,0.5);font-size:12px;text-transform:uppercase;letter-spacing:2px;margin:0 0 14px;">Your Verification Code</p>
@@ -143,13 +133,11 @@ const emailTemplates = {
         <div style="background:#f5ede3;padding:20px 40px;text-align:center;border-top:1px solid #E8E0D0;">
           <p style="color:#A0907A;font-size:12px;margin:0;">© ${new Date().getFullYear()} TableMint — Discover Pune's Finest Tables</p>
         </div>
-      </div>
-    `,
+      </div>`,
   }),
 
-  // ── Customer / Admin: password reset ───────────────────────────────────────
   passwordReset: (resetURL, user) => ({
-    subject: 'TableMint – Password Reset Request',
+    subject: 'TableMint – Reset Your Password',
     html: `
       <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:600px;margin:0 auto;background:#fff8f0;border-radius:16px;overflow:hidden;">
         <div style="background:linear-gradient(135deg,#2C2416,#6B5B45);padding:36px 40px;text-align:center;">
@@ -160,24 +148,21 @@ const emailTemplates = {
         <div style="padding:40px;">
           <h2 style="color:#2C2416;font-size:22px;margin:0 0 12px;">Hi ${user.name},</h2>
           <p style="color:#6B5B45;font-size:15px;line-height:1.7;margin-bottom:28px;">
-            You requested a password reset. Click the button below — this link expires in <strong>15 minutes</strong>.
+            We received a request to reset your password. Click the button below — this link expires in <strong>15 minutes</strong>.
           </p>
           <div style="text-align:center;margin-bottom:28px;">
             <a href="${resetURL}" style="display:inline-block;background:#D4883A;color:#fff;padding:16px 36px;border-radius:12px;text-decoration:none;font-size:16px;font-weight:700;">Reset My Password →</a>
           </div>
-          <p style="color:#A0907A;font-size:13px;line-height:1.7;">If you didn't request this, you can safely ignore this email.</p>
+          <p style="color:#A0907A;font-size:13px;">If you didn't request this, you can safely ignore this email.</p>
         </div>
         <div style="background:#f5ede3;padding:20px 40px;text-align:center;border-top:1px solid #E8E0D0;">
           <p style="color:#A0907A;font-size:12px;margin:0;">© ${new Date().getFullYear()} TableMint — Discover Pune's Finest Tables</p>
         </div>
-      </div>
-    `,
+      </div>`,
   }),
 
-  // alias used by authController
   forgotPassword: function (...args) { return this.passwordReset(...args); },
 
-  // ── Admin: welcome + credentials ───────────────────────────────────────────
   adminWelcome: (admin, restaurant, password) => ({
     subject: `Welcome to TableMint – Your Admin Credentials for ${restaurant.name}`,
     html: `
@@ -189,27 +174,21 @@ const emailTemplates = {
         </div>
         <div style="padding:40px;">
           <h2 style="color:#2C2416;font-size:22px;margin:0 0 12px;">Hi ${admin.name}, welcome aboard! 👋</h2>
-          <p style="color:#6B5B45;font-size:15px;line-height:1.7;margin-bottom:24px;">
-            You've been added as an <strong>admin</strong> for <strong>${restaurant.name}</strong> on TableMint.
-          </p>
+          <p style="color:#6B5B45;font-size:15px;line-height:1.7;margin-bottom:24px;">You've been added as an <strong>admin</strong> for <strong>${restaurant.name}</strong> on TableMint.</p>
           <div style="background:#2C2416;border-radius:14px;padding:24px 28px;margin-bottom:28px;">
             <p style="color:rgba(255,255,255,0.5);font-size:12px;text-transform:uppercase;letter-spacing:2px;margin:0 0 14px;">Your Login Credentials</p>
             <p style="color:#fff;font-size:14px;margin:0 0 8px;"><span style="color:#A0907A;">Email:</span> <strong>${admin.email}</strong></p>
             <p style="color:#fff;font-size:14px;margin:0;"><span style="color:#A0907A;">Password:</span> <strong style="color:#D4883A;font-size:18px;letter-spacing:2px;">${password}</strong></p>
           </div>
-          <p style="color:#6B5B45;font-size:14px;line-height:1.7;">
-            Sign in at: <a href="${process.env.CLIENT_URL || 'http://localhost:3000'}/admin/login" style="color:#D4883A;font-weight:700;">${process.env.CLIENT_URL || 'http://localhost:3000'}/admin/login</a>
-          </p>
+          <p style="color:#6B5B45;font-size:14px;">Sign in at: <a href="${process.env.CLIENT_URL || 'http://localhost:3000'}/admin/login" style="color:#D4883A;font-weight:700;">${process.env.CLIENT_URL || 'http://localhost:3000'}/admin/login</a></p>
           <p style="color:#A0907A;font-size:13px;margin-top:12px;">⚠️ Please change your password after first login.</p>
         </div>
         <div style="background:#f5ede3;padding:20px 40px;text-align:center;border-top:1px solid #E8E0D0;">
           <p style="color:#A0907A;font-size:12px;margin:0;">© ${new Date().getFullYear()} TableMint — Discover Pune's Finest Tables</p>
         </div>
-      </div>
-    `,
+      </div>`,
   }),
 
-  // ── Reservation: status updated ────────────────────────────────────────────
   reservationStatusUpdate: (reservation, restaurant, customer, prevStatus, newStatus) => ({
     subject: `Reservation Update – ${restaurant.name}`,
     html: `
@@ -222,25 +201,21 @@ const emailTemplates = {
         <div style="padding:40px;">
           <h2 style="color:#2C2416;font-size:22px;margin:0 0 12px;">Hi ${customer.name},</h2>
           <p style="color:#6B5B45;font-size:15px;line-height:1.7;margin-bottom:24px;">
-            Your reservation at <strong>${restaurant.name}</strong> status has changed
-            from <strong>${prevStatus}</strong> → <strong style="color:#D4883A;">${newStatus}</strong>.
+            Your reservation at <strong>${restaurant.name}</strong> status changed:
+            <strong>${prevStatus}</strong> → <strong style="color:#D4883A;">${newStatus}</strong>.
           </p>
           <div style="background:#2C2416;border-radius:14px;padding:24px 28px;margin-bottom:28px;">
-            <p style="color:rgba(255,255,255,0.5);font-size:12px;text-transform:uppercase;letter-spacing:2px;margin:0 0 14px;">Reservation Details</p>
+            <p style="color:rgba(255,255,255,0.5);font-size:12px;text-transform:uppercase;letter-spacing:2px;margin:0 0 14px;">Details</p>
             <p style="color:#fff;font-size:14px;margin:0 0 8px;"><span style="color:#A0907A;">Date:</span> <strong>${new Date(reservation.scheduledAt).toLocaleDateString('en-IN', { weekday:'long', year:'numeric', month:'long', day:'numeric' })}</strong></p>
-            <p style="color:#fff;font-size:14px;margin:0 0 8px;"><span style="color:#A0907A;">Time:</span> <strong>${new Date(reservation.scheduledAt).toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' })}</strong></p>
             <p style="color:#fff;font-size:14px;margin:0;"><span style="color:#A0907A;">Booking ID:</span> <strong>#${reservation._id.toString().slice(-8).toUpperCase()}</strong></p>
           </div>
-          <p style="color:#A0907A;font-size:13px;">If you have questions, contact the restaurant directly.</p>
         </div>
         <div style="background:#f5ede3;padding:20px 40px;text-align:center;border-top:1px solid #E8E0D0;">
           <p style="color:#A0907A;font-size:12px;margin:0;">© ${new Date().getFullYear()} TableMint — Discover Pune's Finest Tables</p>
         </div>
-      </div>
-    `,
+      </div>`,
   }),
 
-  // ── Reservation: custom message to customer ─────────────────────────────────
   customerNotification: (reservation, restaurant, customer, message) => ({
     subject: `Message from ${restaurant.name} – TableMint`,
     html: `
@@ -252,11 +227,8 @@ const emailTemplates = {
         </div>
         <div style="padding:40px;">
           <h2 style="color:#2C2416;font-size:22px;margin:0 0 12px;">Hi ${customer.name},</h2>
-          <p style="color:#6B5B45;font-size:15px;line-height:1.7;margin-bottom:24px;">
-            You have a message from <strong>${restaurant.name}</strong>.
-          </p>
+          <p style="color:#6B5B45;font-size:15px;line-height:1.7;margin-bottom:24px;">Message from <strong>${restaurant.name}</strong>:</p>
           <div style="background:#2C2416;border-radius:14px;padding:24px 28px;margin-bottom:28px;">
-            <p style="color:rgba(255,255,255,0.5);font-size:12px;text-transform:uppercase;letter-spacing:2px;margin:0 0 14px;">Message</p>
             <p style="color:#fff;font-size:15px;line-height:1.7;margin:0;">${message}</p>
           </div>
           <p style="color:#A0907A;font-size:12px;">Booking ID: #${reservation._id.toString().slice(-8).toUpperCase()}</p>
@@ -264,11 +236,9 @@ const emailTemplates = {
         <div style="background:#f5ede3;padding:20px 40px;text-align:center;border-top:1px solid #E8E0D0;">
           <p style="color:#A0907A;font-size:12px;margin:0;">© ${new Date().getFullYear()} TableMint — Discover Pune's Finest Tables</p>
         </div>
-      </div>
-    `,
+      </div>`,
   }),
 
-  // ── Restaurant owner: OTP to verify restaurant ─────────────────────────────
   restaurantVerificationOtp: (restaurant, otp, ownerName) => ({
     subject: `TableMint – Verify Your Restaurant: ${restaurant.name}`,
     html: `
@@ -280,10 +250,7 @@ const emailTemplates = {
         </div>
         <div style="padding:40px;">
           <h2 style="color:#2C2416;font-size:22px;margin:0 0 12px;">Hi ${ownerName},</h2>
-          <p style="color:#6B5B45;font-size:15px;line-height:1.7;margin-bottom:24px;">
-            Use the OTP below to verify <strong>${restaurant.name}</strong> on TableMint.
-            Expires in <strong>7 days</strong>.
-          </p>
+          <p style="color:#6B5B45;font-size:15px;line-height:1.7;margin-bottom:24px;">Use the OTP below to verify <strong>${restaurant.name}</strong>. Expires in <strong>7 days</strong>.</p>
           <div style="background:#2C2416;border-radius:14px;padding:28px;text-align:center;margin-bottom:32px;">
             <p style="color:rgba(255,255,255,0.5);font-size:12px;text-transform:uppercase;letter-spacing:2px;margin:0 0 14px;">Verification OTP</p>
             <div style="letter-spacing:12px;font-size:42px;font-weight:800;color:#D4883A;font-family:'Courier New',monospace;">${otp}</div>
@@ -293,11 +260,9 @@ const emailTemplates = {
         <div style="background:#f5ede3;padding:20px 40px;text-align:center;border-top:1px solid #E8E0D0;">
           <p style="color:#A0907A;font-size:12px;margin:0;">© ${new Date().getFullYear()} TableMint — Discover Pune's Finest Tables</p>
         </div>
-      </div>
-    `,
+      </div>`,
   }),
 
-  // ── Restaurant owner: regenerated OTP ──────────────────────────────────────
   restaurantOtpRegenerated: (restaurant, otp, ownerName) => ({
     subject: `TableMint – New Verification OTP for ${restaurant.name}`,
     html: `
@@ -309,21 +274,17 @@ const emailTemplates = {
         </div>
         <div style="padding:40px;">
           <h2 style="color:#2C2416;font-size:22px;margin:0 0 12px;">Hi ${ownerName},</h2>
-          <p style="color:#6B5B45;font-size:15px;line-height:1.7;margin-bottom:24px;">
-            A new OTP has been generated for <strong>${restaurant.name}</strong>.
-            Previous codes are now invalid. Expires in <strong>7 days</strong>.
-          </p>
+          <p style="color:#6B5B45;font-size:15px;line-height:1.7;margin-bottom:24px;">New OTP for <strong>${restaurant.name}</strong>. Previous code is now invalid. Expires in <strong>7 days</strong>.</p>
           <div style="background:#2C2416;border-radius:14px;padding:28px;text-align:center;margin-bottom:32px;">
             <p style="color:rgba(255,255,255,0.5);font-size:12px;text-transform:uppercase;letter-spacing:2px;margin:0 0 14px;">New OTP</p>
             <div style="letter-spacing:12px;font-size:42px;font-weight:800;color:#D4883A;font-family:'Courier New',monospace;">${otp}</div>
           </div>
-          <p style="color:#A0907A;font-size:13px;">⚠️ Never share this code with anyone.</p>
+          <p style="color:#A0907A;font-size:13px;">⚠️ Never share this code.</p>
         </div>
         <div style="background:#f5ede3;padding:20px 40px;text-align:center;border-top:1px solid #E8E0D0;">
           <p style="color:#A0907A;font-size:12px;margin:0;">© ${new Date().getFullYear()} TableMint — Discover Pune's Finest Tables</p>
         </div>
-      </div>
-    `,
+      </div>`,
   }),
 };
 
